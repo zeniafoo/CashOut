@@ -15,23 +15,18 @@ export const authService = {
    * Login user with email and password
    */
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    // Wrap credentials in RequestData as expected by OutSystems API
-    const response = await api.post<LoginResponse>('/Login', {
-      RequestData: credentials
-    })
+    // Send credentials directly, not wrapped in RequestData
+    const response = await api.post<LoginResponse>('/Login', credentials)
 
     // Store user data if login successful
-    // Note: OutSystems API returns UserId instead of Token
     if (response.Success && response.UserId) {
-      // Use UserId as the authentication token since there's no separate token
       localStorage.setItem('authToken', response.UserId)
 
-      // Store user data
       const user: User = {
         UserId: response.UserId,
         Name: response.Name,
-        Email: credentials.Email, // Email not returned by API, use from request
-        PhoneNumber: '', // Not returned by Login API
+        Email: credentials.Email,
+        PhoneNumber: '',
         ReferralCode: response.ReferralCode
       }
       localStorage.setItem('user', JSON.stringify(user))
@@ -44,17 +39,13 @@ export const authService = {
    * Register a new user
    */
   register: async (userData: RegisterRequest): Promise<RegisterResponse> => {
-    // Wrap userData in RequestData as expected by OutSystems API
-    const response = await api.post<RegisterResponse>('/Register', {
-      RequestData: userData
-    })
+    // Send userData directly, not wrapped in RequestData
+    const response = await api.post<RegisterResponse>('/Register', userData)
 
     // Store user data if registration successful
     if (response.Success && response.UserId) {
-      // Use UserId as the authentication token
       localStorage.setItem('authToken', response.UserId)
 
-      // Store user data
       const user: User = {
         UserId: response.UserId,
         Name: userData.Name,
