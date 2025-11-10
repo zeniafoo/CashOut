@@ -78,6 +78,50 @@ export async function apiClient<T = any>(
       )
     }
 
+    // Check if response is HTML (error page)
+    if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+      console.error('[HTML Response] OutSystems returned HTML instead of JSON')
+
+      // Check if it's a CORS error
+      if (response.status === 0 || !response.ok) {
+        throw new ApiError(
+          response.status || 500,
+          'CORS Error: Your OutSystems API is not allowing requests from this domain. Please enable CORS in your OutSystems REST API settings for localhost:3000',
+          {
+            rawResponse: responseText.substring(0, 200),
+            hint: 'Enable CORS in OutSystems Service Center or add your domain to allowed origins'
+          }
+        )
+      }
+
+      // Check for common OutSystems error pages
+      if (responseText.includes('404') || responseText.includes('Not Found')) {
+        throw new ApiError(
+          404,
+          'API endpoint not found. Please verify the API URL in your .env.local file matches your OutSystems REST API endpoint exactly.',
+          { rawResponse: responseText.substring(0, 200) }
+        )
+      }
+
+      if (responseText.includes('500') || responseText.includes('Internal Server Error')) {
+        throw new ApiError(
+          500,
+          'OutSystems server error. Please check your OutSystems error logs in Service Center.',
+          { rawResponse: responseText.substring(0, 200) }
+        )
+      }
+
+      // Generic HTML error
+      throw new ApiError(
+        response.status,
+        'OutSystems returned an HTML error page instead of JSON. This usually means CORS is not enabled or the endpoint URL is incorrect.',
+        {
+          rawResponse: responseText.substring(0, 200),
+          hint: 'Check: 1) CORS is enabled in OutSystems, 2) API URL is correct, 3) OutSystems error logs'
+        }
+      )
+    }
+
     // Try to parse as JSON
     let data
     try {
@@ -86,7 +130,7 @@ export async function apiClient<T = any>(
       console.error('[JSON Parse Error]', parseError)
       throw new ApiError(
         response.status,
-        `Backend returned invalid JSON: ${responseText.substring(0, 100)}`,
+        `Backend returned invalid response. Expected JSON but got: ${responseText.substring(0, 100)}`,
         { rawResponse: responseText }
       )
     }
