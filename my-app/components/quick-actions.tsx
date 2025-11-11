@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowDownToLine, ArrowRightLeft, Send } from "lucide-react"
+import { ArrowDownToLine, ArrowRightLeft, Send, ShieldPlus } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 
@@ -29,10 +29,17 @@ export function QuickActions() {
       bgColor: "bg-green-50",
       onClick: () => router.push("/transfer"),
     },
+    {
+      icon: ShieldPlus,
+      label: "Insurance",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      onClick: () => router.push("/insurance"),
+    },
   ]
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-4 gap-3">
       {actions.map((action) => (
         <Card
           key={action.label}
