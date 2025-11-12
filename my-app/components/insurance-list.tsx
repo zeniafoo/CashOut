@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation"
 
 interface InsurancePlan {
+  plan_ID: number,
   plan_Name: string;
   plan_Premium: number;
   plan_Country: string;
@@ -138,17 +139,10 @@ export function InsuranceProductsPage() {
         <p className="text-gray-500 text-center mt-10">No products found.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPlans.map((plan, index) => (
+          {filteredPlans.map((plan: any) => (
             <Card
-              key={index}
+              key={plan.plan_ID}
               className="shadow-md hover:shadow-xl cursor-pointer transition"
-              onClick={() =>
-                router.push(
-                  `/insurance/${encodeURIComponent(plan.plan_Name)}?provider=${encodeURIComponent(
-                    plan.plan_Provider
-                  )}&country=${encodeURIComponent(plan.plan_Country)}`
-                )
-              }
             >
               <CardContent className="p-4 space-y-2">
                 <h2 className="text-lg font-medium text-gray-900">
@@ -163,7 +157,9 @@ export function InsuranceProductsPage() {
                 <p className="text-sm text-gray-700 font-semibold">
                   Premium: ${plan.plan_Premium.toFixed(2)}/month
                 </p>
-                <Button className="w-full mt-3">View Details</Button>
+                <Button className="w-full mt-3" onClick={() =>router.push(`/insurance/${plan.plan_ID}`)}>
+                  View Details
+                </Button>
               </CardContent>
             </Card>
           ))}
