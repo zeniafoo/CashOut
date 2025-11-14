@@ -81,7 +81,7 @@ export default function QuoteDraftPage() {
       setPremiumError(null);
       try {
         const res = await fetch(
-          `https://personal-g86bdbq5.outsystemscloud.com/Country_DBEA_/rest/premium_v1/CalculatePremium`,
+          `https://personal-g86bdbq5.outsystemscloud.com/Policy_DBEA_/rest/payments_v1/calculatePremium`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

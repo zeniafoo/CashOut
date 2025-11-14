@@ -197,8 +197,144 @@ export default function InsurancePaymentPage() {
 
     const ok = days >= 90;
     setAllowMonthly(ok);
-    if (!ok && paymentMode === "recurring") setPaymentMode("full");
+    if (!ok && paymentMode === "monthly") setPaymentMode("full");
   }, [startDate, endDate, paymentMode]);
+
+  /* ----------------------------------------
+    PAYMENT HELPERS
+  -----------------------------------------*/
+
+  // Calculate full months between dates
+  const calculateMonths = (start: string, end: string) => {
+    const s = new Date(start);
+    const e = new Date(end);
+
+    let months =
+      (e.getFullYear() - s.getFullYear()) * 12 +
+      (e.getMonth() - s.getMonth());
+
+    // If end day is earlier in the month, count fewer months
+    if (e.getDate() < s.getDate()) months--;
+
+    return Math.max(1, months);
+  };
+
+  // Generate future monthly billing dates
+  const generateMonthlyDates = (start: string, count: number) => {
+    const base = new Date(start);
+    const dates: string[] = [];
+
+    for (let i = 1; i < count; i++) {
+      const d = new Date(base);
+      d.setMonth(base.getMonth() + i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+
+    return dates;
+  };
+
+  // Universal Payment API Caller
+  const callPaymentAPI = async (payload: any) => {
+    console.log("📡 Payment Payload:", payload);
+
+    const res = await fetch(
+      "https://personal-g86bdbq5.outsystemscloud.com/Policy_DBEA_/rest/payments_v1/addPayment",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const raw = await res.text();
+    console.log("📨 Payment API Response:", raw);
+
+    if (!res.ok) throw new Error("Payment API failed: " + raw);
+
+    return JSON.parse(raw);
+  };
+
+  /* ----------------------------------------
+    TRIGGER PAYMENTS
+  -----------------------------------------*/
+  const triggerPayments = async ({
+    policyId,
+    paymentMode,
+    premium,
+    startDate,
+    endDate,
+    walletId,
+  }: {
+    policyId: string;
+    paymentMode: string;
+    premium: number;
+    startDate: string;
+    endDate: string;
+    walletId: string;
+  }) => {
+    const userId = BENEFICIARY_USER_ID;
+    const today = new Date().toISOString().split("T")[0];
+
+    const totalMonths = calculateMonths(startDate, endDate);
+    console.log("📅 TOTAL MONTHS:", totalMonths);
+
+    /* ---------------- FULL PAYMENT ---------------- */
+    if (paymentMode === "full") {
+      const payload = {
+        user_ID: userId,
+        policy_ID: policyId,
+        wallet_ID: walletId,
+        payment_date: today,
+        payment_amount: premium,
+        payment_desc: "Full payment received",
+        payment_status: "Completed",
+        payment_Type: "Full",
+        policy_StartDate: startDate,
+        policy_EndDate: endDate,
+      };
+
+      await callPaymentAPI(payload);
+      return;
+    }
+
+    /* ---------------- MONTHLY PAYMENTS ---------------- */
+    const instalment = premium / totalMonths;
+    const futureDates = generateMonthlyDates(startDate, totalMonths);
+
+    // First instalment now
+    const initialPayload = {
+      user_ID: userId,
+      policy_ID: policyId,
+      wallet_ID: walletId,
+      payment_date: today,
+      payment_amount: instalment,
+      payment_desc: `Initial instalment (1/${totalMonths})`,
+      payment_status: "Completed",
+      payment_Type: "Monthly",
+      policy_StartDate: startDate,
+      policy_EndDate: endDate,
+    };
+
+    await callPaymentAPI(initialPayload);
+
+    // Remaining instalments
+    futureDates.forEach(async (date, idx) => {
+      const payload = {
+        user_ID: userId,
+        policy_ID: policyId,
+        wallet_ID: walletId,
+        payment_date: date,
+        payment_amount: instalment,
+        payment_desc: `Scheduled instalment (${idx + 2}/${totalMonths})`,
+        payment_status: "Not Due",
+        payment_Type: "Monthly",
+        policy_StartDate: startDate,
+        policy_EndDate: endDate,
+      };
+
+      await callPaymentAPI(payload);
+    });
+  };
 
   /* ----------------------------------------
      Payment Submission
@@ -212,64 +348,70 @@ export default function InsurancePaymentPage() {
       return;
     }
 
-    const required = paymentMode === "recurring" ? premium / 3 : premium;
+    const required = paymentMode === "monthly" ? premium / 3 : premium;
     if (walletBalance < required) {
       setError(`Insufficient balance. Required: $${required.toFixed(2)}`);
       return;
     }
 
     setLoading(true);
+    const today = new Date().toISOString().split("T")[0];
 
     try {
-      /* Step 1 — Create Policy */
-      const policyRes = await fetch(
-        "https://personal-g86bdbq5.outsystemscloud.com/Insurance_DBEA_/rest/policy_v1/CreatePolicy",
+      /* ----------------------------------------------------
+        STEP 1 — Create Policy
+      ----------------------------------------------------- */
+      const policyPayload = {
+        user_ID: BENEFICIARY_USER_ID,
+        plan_ID: plan?.plan_ID ?? "",
+        policy_StartDate: startDate,
+        policy_EndDate: endDate,
+        policy_IssuedDate: today,
+        policy_Premium: premium,
+        policy_DestinationCountry: plan?.plan_Country ?? "",
+        policy_Status: "Submitted",
+      };
+
+      console.log("Policy Payload:", JSON.stringify(policyPayload, null, 2));
+
+      const res = await fetch(
+        "https://personal-g86bdbq5.outsystemscloud.com/Policy_DBEA_/rest/policy_v1/addPolicy",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            plan_ID,
-            policy_StartDate: startDate,
-            policy_EndDate: endDate,
-            paymentMode,
-            policy_Country: plan?.plan_Country ?? "",
-          }),
+          body: JSON.stringify(policyPayload),
         }
       );
 
-      const policyData = await policyRes.json();
-      const policy_ID = policyData?.policy_ID ?? 0;
+      const rawText = await res.text();
+      console.log("Policy API Response:", rawText);
 
-      /* Step 2 — Create Payment */
-      const paymentBody =
-        paymentMode === "recurring"
-          ? {
-              policy_ID,
-              payment_Type: "Monthly",
-              total_Amount: premium,
-              initial_Amount: premium / 3,
-              wallet_ID: Number(selectedWallet),
-            }
-          : {
-              policy_ID,
-              payment_Type: "OneTime",
-              total_Amount: premium,
-              wallet_ID: Number(selectedWallet),
-            };
+      if (!res.ok) throw new Error(rawText);
 
-      await fetch(
-        "https://personal-g86bdbq5.outsystemscloud.com/Insurance_DBEA_/rest/payment_v1/CreatePayment",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(paymentBody),
-        }
-      );
+      const policyResponse = JSON.parse(rawText);
+
+      // 🔥 THE IMPORTANT PART — get new policy ID
+      const newPolicyID = policyResponse.policy_ID;
+      if (!newPolicyID) throw new Error("No policy_ID returned from API");
+
+      console.log("🔥 NEW POLICY ID =", newPolicyID);
+
+      /* ----------------------------------------------------
+        STEP 2 — Trigger Payments (full or monthly)
+      ----------------------------------------------------- */
+      await triggerPayments({
+        policyId: newPolicyID,
+        paymentMode,
+        premium,
+        startDate: startDate!,
+        endDate: endDate!,
+        walletId: selectedWallet,
+      });
 
       setSuccess("Payment successful! Redirecting...");
-      setTimeout(() => router.push("/insurance"), 1800);
-    } catch (e) {
-      console.error(e);
+      // setTimeout(() => router.push("/insurance"), 1800);
+    } catch (err) {
+      console.error("❌ ERROR:", err);
       setError("Payment failed. Try again.");
     } finally {
       setLoading(false);
@@ -352,7 +494,7 @@ export default function InsurancePaymentPage() {
             disabled={!allowMonthly}
           >
             <option value="full">Full Payment</option>
-            <option value="recurring" disabled={!allowMonthly}>
+            <option value="monthly" disabled={!allowMonthly}>
               Monthly Instalments
             </option>
           </select>
@@ -381,7 +523,7 @@ export default function InsurancePaymentPage() {
             ))}
           </select>
 
-          {selectedWallet && walletBalance < (paymentMode === "recurring" ? instalment : premium) && (
+          {selectedWallet && walletBalance < (paymentMode === "monthly" ? instalment : premium) && (
             <p className="text-red-600 text-sm mt-1">
               ⚠ Insufficient balance
             </p>
@@ -392,15 +534,27 @@ export default function InsurancePaymentPage() {
         <div className="bg-blue-50 p-4 rounded-lg">
           <p className="text-gray-600 mb-1 font-medium">Premium to Pay:</p>
 
-          {paymentMode === "recurring" ? (
-            <>
-              <p className="text-2xl font-bold text-blue-700">
-                ${instalment.toFixed(2)} now
-              </p>
-              <p className="text-sm text-gray-700">
-                + ${(premium - instalment).toFixed(2)} over next 2 months
-              </p>
-            </>
+          {paymentMode === "monthly" ? (
+            (() => {
+              const months = calculateMonths(startDate!, endDate!);
+              const instalment = premium / months;
+              const remainingTotal = premium - instalment;
+
+              return (
+                <>
+                  <p className="text-2xl font-bold text-blue-700">
+                    ${instalment.toFixed(2)} now
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    + {months - 1} instalments of ${instalment.toFixed(2)}  
+                    ({remainingTotal.toFixed(2)} total)
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Spread across {months} months
+                  </p>
+                </>
+              );
+            })()
           ) : (
             <p className="text-2xl font-bold text-blue-700">
               ${premium.toFixed(2)}
