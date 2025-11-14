@@ -32,7 +32,6 @@ export default function InsuranceDetailsPage() {
         setError(error.message);
       }
     }
-
     fetchPlan();
   }, [plan_ID]);
 
@@ -164,7 +163,8 @@ export default function InsuranceDetailsPage() {
             <button
               type="submit"
               className="bg-white text-green-700 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition self-end"
-              onClick={() =>router.push(`/insurance/${plan.plan_ID}`)}
+              // onClick={() =>router.push(`/insurance/${plan.plan_ID}`)}
+              onClick={() =>router.push(`/insurance/${plan_ID}/quote-draft?start=${startDate}&end=${endDate}`)}
             >
               Continue
             </button>
