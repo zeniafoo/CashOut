@@ -1,22 +1,41 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Eye, EyeOff, TrendingUp } from "lucide-react"
+import { Eye, EyeOff, TrendingUp, Loader2 } from "lucide-react"
 import { CurrencySelector } from "@/components/currency-selector"
-
-const balances = {
-  SGD: 12450.75,
-  MYR: 8320.5,
-  USD: 5680.25,
-  JPY: 125000,
-  KRW: 7500000,
-}
+import { useAuth } from "@/contexts/AuthContext"
+import { walletService } from "@/lib/api/wallet"
+import type { CurrencyCode, Wallet } from "@/types/wallet"
 
 export function BalanceCard() {
+  const { user } = useAuth()
   const [showBalance, setShowBalance] = useState(true)
-  const [selectedCurrency, setSelectedCurrency] = useState<keyof typeof balances>("SGD")
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>("SGD")
+  const [wallets, setWallets] = useState<Wallet[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch wallet balances on mount
+  useEffect(() => {
+    const fetchWallets = async () => {
+      if (!user?.UserId) {
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const fetchedWallets = await walletService.getAllWallets(user.UserId)
+        setWallets(fetchedWallets)
+      } catch (error) {
+        console.error('Error fetching wallets:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchWallets()
+  }, [user?.UserId])
 
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat("en-US", {
@@ -24,6 +43,19 @@ export function BalanceCard() {
       currency: currency,
       minimumFractionDigits: currency === "JPY" || currency === "KRW" ? 0 : 2,
     }).format(amount)
+  }
+
+  // Get the balance for the selected currency
+  const currentBalance = wallets.find(w => w.CurrencyCode === selectedCurrency)?.Balance || 0
+
+  if (isLoading) {
+    return (
+      <Card className="border-2 shadow-lg bg-gradient-to-br from-primary via-primary/95 to-primary/90 text-primary-foreground">
+        <CardContent className="pt-6 pb-6 flex items-center justify-center min-h-[180px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -37,7 +69,7 @@ export function BalanceCard() {
             <div className="flex items-center gap-3">
               {showBalance ? (
                 <h2 className="text-4xl font-bold tracking-tight">
-                  {formatCurrency(balances[selectedCurrency], selectedCurrency)}
+                  {formatCurrency(currentBalance, selectedCurrency)}
                 </h2>
               ) : (
                 <h2 className="text-4xl font-bold tracking-tight">••••••</h2>

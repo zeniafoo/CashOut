@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/api/auth'
+import { walletService } from '@/lib/api/wallet'
 import type { User, LoginRequest, RegisterRequest } from '@/types/auth'
 import { ApiError } from '@/lib/api/client'
 
@@ -56,10 +57,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (userData: RegisterRequest) => {
     try {
+      // Step 1: Register the user
       const response = await authService.register(userData)
 
       if (response.Success && response.UserId) {
-        // Get the user data from localStorage that was set by authService
+        // Step 2: Create 5 wallets for the newly registered user (SGD, USD, MYR, KRW, JPY)
+        try {
+          const walletResults = await walletService.createAllWallets(response.UserId)
+
+          if (walletResults.success > 0) {
+            console.log(`✓ Successfully created ${walletResults.success} wallets`)
+          }
+
+          if (walletResults.failed > 0) {
+            console.warn(`⚠ Failed to create ${walletResults.failed} wallets`)
+            // User can still proceed, failed wallets can be created later
+          }
+        } catch (walletError) {
+          // Wallet API call failed, but user registration succeeded
+          console.error('Error creating wallets:', walletError)
+          // User can still proceed, wallets can be created later
+        }
+
+        // Step 3: Load user data and redirect to dashboard
         const currentUser = authService.getCurrentUser()
         setUser(currentUser)
         router.push('/dashboard')

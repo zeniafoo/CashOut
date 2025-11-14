@@ -12,6 +12,9 @@ import { CurrencySelector } from "@/components/currency-selector"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CreditCard, Building2, Smartphone, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/AuthContext"
+import { walletService } from "@/lib/api/wallet"
+import type { CurrencyCode } from "@/types/wallet"
 
 const depositMethods = [
   { id: "card", label: "Credit/Debit Card", icon: CreditCard },
@@ -22,31 +25,68 @@ const depositMethods = [
 export function DepositForm() {
   const router = useRouter()
   const { toast } = useToast()
+  const { user } = useAuth()
   const [amount, setAmount] = useState("")
-  const [currency, setCurrency] = useState("SGD")
+  const [currency, setCurrency] = useState<CurrencyCode>("SGD")
   const [method, setMethod] = useState("card")
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!user?.UserId) {
+      toast({
+        title: "Error",
+        description: "User not authenticated. Please log in again.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid deposit amount.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
-    // Simulate API call to OutSystems backend
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      // Call the actual wallet API to update balance
+      const response = await walletService.updateWallet(
+        user.UserId,
+        currency,
+        parseFloat(amount)
+      )
 
-    setIsLoading(false)
-    setIsSuccess(true)
+      if (response.Success) {
+        setIsLoading(false)
+        setIsSuccess(true)
 
-    toast({
-      title: "Deposit Successful!",
-      description: `${currency} ${amount} has been added to your account.`,
-    })
+        toast({
+          title: "Deposit Successful!",
+          description: `${currency} ${amount} has been added to your account.${response.NewBalance ? ` New balance: ${currency} ${response.NewBalance}` : ''}`,
+        })
 
-    // Redirect after success
-    setTimeout(() => {
-      router.push("/dashboard")
-    }, 2000)
+        // Redirect after success
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 2000)
+      } else {
+        throw new Error(response.Message || 'Deposit failed')
+      }
+    } catch (error) {
+      setIsLoading(false)
+      toast({
+        title: "Deposit Failed",
+        description: error instanceof Error ? error.message : "An error occurred during deposit",
+        variant: "destructive",
+      })
+    }
   }
 
   if (isSuccess) {
