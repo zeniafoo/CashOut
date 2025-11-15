@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/api/auth'
 import { walletService } from '@/lib/api/wallet'
+import { referralService } from '@/lib/api/referral'
 import type { User, LoginRequest, RegisterRequest } from '@/types/auth'
 import { ApiError } from '@/lib/api/client'
 
@@ -12,7 +13,7 @@ interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   login: (credentials: LoginRequest) => Promise<void>
-  register: (userData: RegisterRequest) => Promise<void>
+  register: (userData: RegisterRequest, referralCode?: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -55,13 +56,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const register = async (userData: RegisterRequest) => {
+  const register = async (userData: RegisterRequest, referralCode?: string) => {
     try {
       // Step 1: Register the user
       const response = await authService.register(userData)
 
       if (response.Success && response.UserId) {
-        // Step 2: Create 5 wallets for the newly registered user (SGD, USD, MYR, KRW, JPY)
+        // Step 2: Apply referral code if provided
+        if (referralCode) {
+          try {
+            await referralService.useReferralCode(response.UserId, referralCode)
+            console.log(`✓ Referral code "${referralCode}" applied successfully`)
+          } catch (referralError) {
+            // Referral code application failed, but user registration succeeded
+            console.error('Error applying referral code:', referralError)
+            // User can still proceed - referral code might be invalid
+          }
+        }
+
+        // Step 3: Create 5 wallets for the newly registered user (SGD, USD, MYR, KRW, JPY)
         try {
           const walletResults = await walletService.createAllWallets(response.UserId)
 
@@ -79,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // User can still proceed, wallets can be created later
         }
 
-        // Step 3: Load user data and redirect to dashboard
+        // Step 4: Load user data and redirect to dashboard
         const currentUser = authService.getCurrentUser()
         setUser(currentUser)
         router.push('/dashboard')

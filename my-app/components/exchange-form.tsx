@@ -11,6 +11,7 @@ import { CurrencySelector } from "@/components/currency-selector"
 import { ArrowDownUp, TrendingUp, CheckCircle2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { exchangeCurrency, getExchangeRate, getCurrentUserId } from "@/lib/api/exchange"
+import { checkAndCompleteReferral } from "@/lib/referral-helper"
 
 export function ExchangeForm() {
   const router = useRouter();
@@ -132,6 +133,12 @@ export function ExchangeForm() {
         Number.parseFloat(fromAmount)
       );
       if (result.Success) {
+        // Check and complete referral if this is user's first transaction
+        const userId = getCurrentUserId();
+        if (userId) {
+          await checkAndCompleteReferral(userId);
+        }
+
         setIsSuccess(true);
         setTransactionId(Number(result.TransactionId));
         setToAmount(result.ConvertedAmount.toFixed(2));

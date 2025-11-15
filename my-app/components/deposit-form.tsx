@@ -14,6 +14,7 @@ import { CreditCard, Building2, Smartphone, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
 import { walletService } from "@/lib/api/wallet"
+import { checkAndCompleteReferral } from "@/lib/referral-helper"
 import type { CurrencyCode } from "@/types/wallet"
 
 const depositMethods = [
@@ -64,6 +65,9 @@ export function DepositForm() {
       )
 
       if (response.Success) {
+        // Check and complete referral if this is user's first transaction
+        await checkAndCompleteReferral(user.UserId)
+
         setIsLoading(false)
         setIsSuccess(true)
 

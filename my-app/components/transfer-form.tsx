@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QRScanner } from "@/components/qr-scanner"
 import { useAuth } from "@/contexts/AuthContext"
+import { checkAndCompleteReferral } from "@/lib/referral-helper"
 
 // Mock recent contacts
 const recentContacts = [
@@ -143,6 +144,9 @@ export function TransferForm() {
           return
         }
 
+        // Check and complete referral if this is user's first transaction
+        await checkAndCompleteReferral(user.UserId)
+
         setIsSuccess(true)
         toast({
           title: "Payment Successful!",
@@ -151,6 +155,11 @@ export function TransferForm() {
       } else {
         // Regular transfer logic (existing phone/email/username)
         await new Promise((resolve) => setTimeout(resolve, 2000))
+
+        // Check and complete referral if this is user's first transaction
+        if (user?.UserId) {
+          await checkAndCompleteReferral(user.UserId)
+        }
 
         setIsSuccess(true)
         toast({

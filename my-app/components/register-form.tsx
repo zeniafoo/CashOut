@@ -16,6 +16,7 @@ export function RegisterForm() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [referralCode, setReferralCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -89,11 +90,13 @@ export function RegisterForm() {
         Email: email,
         PhoneNumber: phoneNumber,
         Password: password,
-      })
+      }, referralCode.trim() || undefined) // Pass referral code if provided
 
       toast({
         title: 'Success',
-        description: 'Account created successfully!',
+        description: referralCode.trim()
+          ? 'Account created successfully! Referral code applied.'
+          : 'Account created successfully!',
       })
     } catch (error) {
       toast({
@@ -193,6 +196,23 @@ export function RegisterForm() {
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="referralCode">
+              Referral Code <span className="text-muted-foreground text-xs">(Optional)</span>
+            </Label>
+            <Input
+              id="referralCode"
+              type="text"
+              placeholder="Enter referral code"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              disabled={isLoading}
+              className="uppercase"
+            />
+            <p className="text-xs text-muted-foreground">
+              Have a referral code? Both you and your friend get $5 after your first transaction!
+            </p>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
