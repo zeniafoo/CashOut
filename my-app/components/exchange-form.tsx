@@ -10,12 +10,14 @@ import { Label } from "@/components/ui/label"
 import { CurrencySelector } from "@/components/currency-selector"
 import { ArrowDownUp, TrendingUp, CheckCircle2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useNotifications } from "@/contexts/NotificationContext"
 import { exchangeCurrency, getExchangeRate, getCurrentUserId } from "@/lib/api/exchange"
 import { checkAndCompleteReferral } from "@/lib/referral-helper"
 
 export function ExchangeForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const { addNotification } = useNotifications();
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [fromCurrency, setFromCurrency] = useState("SGD");
@@ -138,6 +140,15 @@ export function ExchangeForm() {
         if (userId) {
           await checkAndCompleteReferral(userId);
         }
+
+        // Add notification
+        addNotification(
+          "exchange",
+          "Exchange Successful",
+          `Exchanged ${fromCurrency} to ${toCurrency}`,
+          result.ConvertedAmount.toFixed(2),
+          toCurrency
+        );
 
         setIsSuccess(true);
         setTransactionId(Number(result.TransactionId));

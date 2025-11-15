@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CreditCard, Building2, Smartphone, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
+import { useNotifications } from "@/contexts/NotificationContext"
 import { walletService } from "@/lib/api/wallet"
 import { checkAndCompleteReferral } from "@/lib/referral-helper"
 import type { CurrencyCode } from "@/types/wallet"
@@ -27,6 +28,7 @@ export function DepositForm() {
   const router = useRouter()
   const { toast } = useToast()
   const { user } = useAuth()
+  const { addNotification } = useNotifications()
   const [amount, setAmount] = useState("")
   const [currency, setCurrency] = useState<CurrencyCode>("SGD")
   const [method, setMethod] = useState("card")
@@ -67,6 +69,15 @@ export function DepositForm() {
       if (response.Success) {
         // Check and complete referral if this is user's first transaction
         await checkAndCompleteReferral(user.UserId)
+
+        // Add notification
+        addNotification(
+          "deposit",
+          "Deposit Successful",
+          `Your deposit has been processed successfully`,
+          amount,
+          currency
+        )
 
         setIsLoading(false)
         setIsSuccess(true)

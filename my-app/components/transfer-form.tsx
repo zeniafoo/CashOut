@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QRScanner } from "@/components/qr-scanner"
 import { useAuth } from "@/contexts/AuthContext"
+import { useNotifications } from "@/contexts/NotificationContext"
 import { checkAndCompleteReferral } from "@/lib/referral-helper"
 
 // Mock recent contacts
@@ -36,6 +37,7 @@ export function TransferForm() {
   const router = useRouter()
   const { toast } = useToast()
   const { user } = useAuth()
+  const { addNotification } = useNotifications()
   const [transferMethod, setTransferMethod] = useState("phone")
   const [recipient, setRecipient] = useState("")
   const [amount, setAmount] = useState("")
@@ -147,6 +149,15 @@ export function TransferForm() {
         // Check and complete referral if this is user's first transaction
         await checkAndCompleteReferral(user.UserId)
 
+        // Add notification
+        addNotification(
+          "transfer_sent",
+          "Payment Sent",
+          `Payment sent to ${scannedMerchant.merchantName}`,
+          amount,
+          currency
+        )
+
         setIsSuccess(true)
         toast({
           title: "Payment Successful!",
@@ -160,6 +171,15 @@ export function TransferForm() {
         if (user?.UserId) {
           await checkAndCompleteReferral(user.UserId)
         }
+
+        // Add notification
+        addNotification(
+          "transfer_sent",
+          "Transfer Sent",
+          `Money sent to ${recipient}`,
+          amount,
+          currency
+        )
 
         setIsSuccess(true)
         toast({
