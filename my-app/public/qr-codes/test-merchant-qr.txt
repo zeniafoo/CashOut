@@ -1,0 +1,1 @@
+{"merchantId":"0000005637","merchantName":"External Merchant Account","type":"external_payment"}

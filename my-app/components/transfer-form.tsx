@@ -11,9 +11,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CurrencySelector } from "@/components/currency-selector"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CheckCircle2, User, Phone, Mail, Users } from "lucide-react"
+import { CheckCircle2, User, Phone, Mail, Users, QrCode } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { QRScanner } from "@/components/qr-scanner"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Mock recent contacts
 const recentContacts = [
@@ -23,9 +25,16 @@ const recentContacts = [
   { id: 4, name: "Emily Tan", phone: "+65 8456 7890", avatar: "ET" },
 ]
 
+interface ScannedMerchant {
+  merchantId: string
+  merchantName: string
+  type: string
+}
+
 export function TransferForm() {
   const router = useRouter()
   const { toast } = useToast()
+  const { user } = useAuth()
   const [transferMethod, setTransferMethod] = useState("phone")
   const [recipient, setRecipient] = useState("")
   const [amount, setAmount] = useState("")
@@ -34,6 +43,8 @@ export function TransferForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [selectedContact, setSelectedContact] = useState<(typeof recentContacts)[0] | null>(null)
+  const [scannedMerchant, setScannedMerchant] = useState<ScannedMerchant | null>(null)
+  const [isQRScanned, setIsQRScanned] = useState(false)
 
   const handleSelectContact = (contact: (typeof recentContacts)[0]) => {
     setSelectedContact(contact)
@@ -41,25 +52,126 @@ export function TransferForm() {
     setTransferMethod("phone")
   }
 
+  const handleQRScan = (data: string) => {
+    try {
+      const parsedData: ScannedMerchant = JSON.parse(data)
+
+      if (parsedData.type === "external_payment") {
+        setScannedMerchant(parsedData)
+        setRecipient(parsedData.merchantName)
+        setIsQRScanned(true)
+
+        toast({
+          title: "QR Code Scanned!",
+          description: `Merchant: ${parsedData.merchantName}`,
+        })
+      } else {
+        toast({
+          title: "Invalid QR Code",
+          description: "This QR code is not valid for payment",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Scan Error",
+        description: "Failed to read QR code data",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call to OutSystems backend
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      if (transferMethod === "qr" && scannedMerchant) {
+        // Validate user is logged in
+        if (!user?.UserId) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to make a payment",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          router.push("/")
+          return
+        }
 
-    setIsLoading(false)
-    setIsSuccess(true)
+        // Generate unique transaction ID
+        const transactionId = `TXN${Date.now()}`
 
-    toast({
-      title: "Transfer Successful!",
-      description: `${currency} ${amount} sent to ${recipient}`,
-    })
+        const paymentPayload = {
+          accountId: scannedMerchant.merchantId,
+          amount: parseFloat(amount),
+          narrative: note || "QR Payment",
+          transactionId,
+          userId: user.UserId,
+          currencyCode: currency,
+        }
 
-    // Redirect after success
-    setTimeout(() => {
-      router.push("/dashboard")
-    }, 2000)
+        console.log("[Transfer Form] Sending payment request:", paymentPayload)
+
+        // Call external payment API (includes wallet deduction)
+        const response = await fetch("/api/external-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(paymentPayload),
+        })
+
+        const responseData = await response.json()
+
+        if (!response.ok) {
+          // Handle specific error cases
+          if (responseData.error === "Insufficient balance") {
+            toast({
+              title: "Insufficient Balance",
+              description: `You need ${currency} ${amount} but only have ${currency} ${responseData.currentBalance}`,
+              variant: "destructive",
+            })
+          } else {
+            toast({
+              title: "Payment Failed",
+              description: responseData.error || "An error occurred during payment",
+              variant: "destructive",
+            })
+          }
+          setIsLoading(false)
+          return
+        }
+
+        setIsSuccess(true)
+        toast({
+          title: "Payment Successful!",
+          description: `${currency} ${amount} sent to ${scannedMerchant.merchantName}`,
+        })
+      } else {
+        // Regular transfer logic (existing phone/email/username)
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+
+        setIsSuccess(true)
+        toast({
+          title: "Transfer Successful!",
+          description: `${currency} ${amount} sent to ${recipient}`,
+        })
+      }
+
+      // Redirect after success
+      setTimeout(() => {
+        router.push("/dashboard")
+      }, 2000)
+    } catch (error) {
+      toast({
+        title: "Transfer Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (isSuccess) {
@@ -127,7 +239,7 @@ export function TransferForm() {
             <div className="space-y-3">
               <Label>Send to</Label>
               <Tabs value={transferMethod} onValueChange={setTransferMethod}>
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="phone" className="gap-2">
                     <Phone className="h-4 w-4" />
                     Phone
@@ -139,6 +251,10 @@ export function TransferForm() {
                   <TabsTrigger value="username" className="gap-2">
                     <User className="h-4 w-4" />
                     Username
+                  </TabsTrigger>
+                  <TabsTrigger value="qr" className="gap-2">
+                    <QrCode className="h-4 w-4" />
+                    QR Code
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="phone" className="mt-4">
@@ -170,6 +286,35 @@ export function TransferForm() {
                     required
                     className="h-11"
                   />
+                </TabsContent>
+                <TabsContent value="qr" className="mt-4">
+                  {!isQRScanned ? (
+                    <QRScanner onScan={handleQRScan} />
+                  ) : (
+                    <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-green-100 p-2 rounded-full">
+                          <CheckCircle2 className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-green-900">Merchant Scanned</p>
+                          <p className="text-sm text-green-700">{scannedMerchant?.merchantName}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setIsQRScanned(false)
+                            setScannedMerchant(null)
+                            setRecipient("")
+                          }}
+                        >
+                          Scan Again
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>
