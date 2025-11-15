@@ -9,6 +9,7 @@ import type {
   UpdateWalletRequest,
   UpdateWalletResponse,
   Wallet,
+  Transaction,
   CurrencyCode,
   SUPPORTED_CURRENCIES,
 } from '@/types/wallet'
@@ -71,7 +72,8 @@ async function walletApiClient<T = any>(
 
     const jsonData = JSON.parse(responseText)
 
-    if (!response.ok || jsonData.Success === false) {
+    // Handle error responses (object with Success field)
+    if (!response.ok || (typeof jsonData === 'object' && !Array.isArray(jsonData) && jsonData.Success === false)) {
       throw new Error(jsonData.Message || 'Wallet API error occurred')
     }
 
@@ -274,6 +276,49 @@ export const walletService = {
     } catch (error) {
       console.error(`✗ Error fetching ${currencyCode} wallet:`, error)
       return null
+    }
+  },
+
+  /**
+   * Get recent transactions for a user
+   * Uses UserId to fetch all transactions across all wallets
+   * API returns a direct array of transactions with CurrencyCode included
+   */
+  getRecentTransactions: async (userId: string, limit: number = 10): Promise<Transaction[]> => {
+    console.log(`[Wallet API] Fetching recent transactions for user: ${userId}`)
+
+    try {
+      // Fetch transactions using UserId - API returns direct array with CurrencyCode
+      const transactions = await walletApi.get<Transaction[]>(
+        `/GetRecentTransactions?UserId=${userId}`
+      )
+
+      if (!Array.isArray(transactions)) {
+        console.warn('⚠ API did not return an array of transactions')
+        return []
+      }
+
+      console.log(`[Wallet API] Fetched ${transactions.length} transactions`)
+
+      // Sort transactions by date (most recent first)
+      const sortedTransactions = transactions.sort((a, b) => {
+        const dateA = new Date(a.TransactionDate).getTime()
+        const dateB = new Date(b.TransactionDate).getTime()
+        return dateB - dateA // Descending order (newest first)
+      })
+
+      // Return only the most recent N transactions
+      const recentTransactions = sortedTransactions.slice(0, limit)
+
+      console.log(`✓ Returning ${recentTransactions.length} most recent transactions`)
+      recentTransactions.forEach(t => {
+        console.log(`  - Transaction ${t.Id}: ${t.CurrencyCode} ${t.Amount} (${t.TransactionType})`)
+      })
+
+      return recentTransactions
+    } catch (error) {
+      console.error('✗ Error fetching recent transactions:', error)
+      return []
     }
   },
 }

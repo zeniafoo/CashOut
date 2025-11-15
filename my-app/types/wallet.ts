@@ -47,3 +47,28 @@ export interface GetAllWalletsResponse {
   Message: string
   Wallets?: Wallet[]
 }
+
+export interface Transaction {
+  Id: number
+  WalletId: number
+  TransactionType: string // "Deposit", "Withdrawal", "Transfer", etc.
+  BalanceBefore: number
+  BalanceAfter: string
+  Status: string
+  TransactionDate: string
+  Description: string
+  Amount: number
+  CurrencyCode: string // Now included in API response
+}
+
+// Legacy fields for backward compatibility (mapped from new format)
+export interface TransactionLegacy {
+  TransactionId: string
+  WalletId: string
+  Amount: number
+  CurrencyCode: string
+  Type: string
+  Description?: string
+  CreatedAt: string
+  Status?: string
+}
