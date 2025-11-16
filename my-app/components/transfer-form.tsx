@@ -11,13 +11,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CurrencySelector } from "@/components/currency-selector"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CheckCircle2, User, Phone, Mail, Users, QrCode } from "lucide-react"
+import { CheckCircle2, Phone, Users, QrCode, Key } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QRScanner } from "@/components/qr-scanner"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { checkAndCompleteReferral } from "@/lib/referral-helper"
+import { transferService } from "@/lib/api/transfer"
+import { authService } from "@/lib/api/auth"
+
 
 // Mock recent contacts
 const recentContacts = [
@@ -163,6 +166,58 @@ export function TransferForm() {
           title: "Payment Successful!",
           description: `${currency} ${amount} sent to ${scannedMerchant.merchantName}`,
         })
+      } else if (transferMethod === "userId") {
+        // UserId transfer logic - real API call
+        // Validation is handled by OutSystems backend
+        
+        if (!user?.UserId) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to make a transfer",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          router.push("/")
+          return
+        }
+      
+        // Send transfer request
+        const transferRequest = {
+          FromUserId: user.UserId,
+          ToUserId: recipient.trim(),
+          CurrencyCode: currency,
+          Amount: parseFloat(amount),
+        }
+      
+        console.log("[Transfer Form] Sending transfer request:", transferRequest)
+      
+        try {
+          const response = await transferService.sendFund(transferRequest)
+      
+          if (!response.Success) {
+            toast({
+              title: "Transfer Failed",
+              description: response.Message || "An error occurred during transfer",
+              variant: "destructive",
+            })
+            setIsLoading(false)
+            return
+          }
+      
+          setIsSuccess(true)
+          toast({
+            title: "Transfer Successful!",
+            description: `${currency} ${amount} sent to ${recipient.trim()}`,
+          })
+        } catch (error) {
+          toast({
+            title: "Transfer Failed",
+            description: error instanceof Error ? error.message : "An error occurred",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
       } else {
         // Regular transfer logic (existing phone/email/username)
         await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -186,6 +241,92 @@ export function TransferForm() {
           title: "Transfer Successful!",
           description: `${currency} ${amount} sent to ${recipient}`,
         })
+        // Phone transfer - lookup UserId first
+        if (!user?.UserId) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to make a transfer",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          router.push("/")
+          return
+        }
+      
+        if (!recipient || !recipient.trim()) {
+          toast({
+            title: "Recipient Required",
+            description: "Please enter a phone number",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
+      
+        // Lookup recipient UserId by phone
+        let recipientUserId: string | null = null
+      
+        try {
+          recipientUserId = await authService.findUserByPhone(recipient.trim())
+      
+          if (!recipientUserId) {
+            toast({
+              title: "Recipient Not Found",
+              description: "No user found with this phone number. Please check and try again.",
+              variant: "destructive",
+            })
+            setIsLoading(false)
+            return
+          }
+      
+        } catch (error) {
+          console.error('[Transfer Form] Phone lookup error:', error)
+          toast({
+            title: "Lookup Failed",
+            description: error instanceof Error ? error.message : "Could not find recipient. Please check the phone number and try again.",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
+      
+        // Send transfer request
+        const transferRequest = {
+          FromUserId: user.UserId,
+          ToUserId: recipientUserId,
+          CurrencyCode: currency,
+          Amount: parseFloat(amount),
+        }
+      
+        console.log("[Transfer Form] Sending transfer request:", transferRequest)
+      
+        try {
+          const response = await transferService.sendFund(transferRequest)
+      
+          if (!response.Success) {
+            toast({
+              title: "Transfer Failed",
+              description: response.Message || "An error occurred during transfer",
+              variant: "destructive",
+            })
+            setIsLoading(false)
+            return
+          }
+      
+          setIsSuccess(true)
+          toast({
+            title: "Transfer Successful!",
+            description: `${currency} ${amount} sent to ${recipient}`,
+          })
+        } catch (error) {
+          toast({
+            title: "Transfer Failed",
+            description: error instanceof Error ? error.message : "An error occurred",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
       }
 
       // Redirect after success
@@ -268,18 +409,14 @@ export function TransferForm() {
             <div className="space-y-3">
               <Label>Send to</Label>
               <Tabs value={transferMethod} onValueChange={setTransferMethod}>
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="phone" className="gap-2">
                     <Phone className="h-4 w-4" />
                     Phone
                   </TabsTrigger>
-                  <TabsTrigger value="email" className="gap-2">
-                    <Mail className="h-4 w-4" />
-                    Email
-                  </TabsTrigger>
-                  <TabsTrigger value="username" className="gap-2">
-                    <User className="h-4 w-4" />
-                    Username
+                  <TabsTrigger value="userId" className="gap-2">
+                    <Key className="h-4 w-4" />
+                    UserId
                   </TabsTrigger>
                   <TabsTrigger value="qr" className="gap-2">
                     <QrCode className="h-4 w-4" />
@@ -296,20 +433,10 @@ export function TransferForm() {
                     className="h-11"
                   />
                 </TabsContent>
-                <TabsContent value="email" className="mt-4">
-                  <Input
-                    type="email"
-                    placeholder="recipient@example.com"
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    required
-                    className="h-11"
-                  />
-                </TabsContent>
-                <TabsContent value="username" className="mt-4">
+                <TabsContent value="userId" className="mt-4">
                   <Input
                     type="text"
-                    placeholder="@username"
+                    placeholder="0000000000"
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
                     required

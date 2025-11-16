@@ -8,6 +8,7 @@ import type {
   RegisterResponse,
   GetUserResponse,
   User,
+  GetUserByPhoneResponse,
 } from '@/types/auth'
 
 export const authService = {
@@ -76,6 +77,30 @@ export const authService = {
     }
 
     return null
+  },
+
+  /**
+ * Find user by phone number
+ */
+  findUserByPhone: async (phone: string): Promise<string | null> => {
+    if (!phone || !phone.trim()) {
+      return null
+    }
+
+    try {
+      const response = await api.get<GetUserByPhoneResponse>(
+        `/GetUserByPhone?PhoneNumber=${encodeURIComponent(phone.trim())}`
+      )
+
+      if (response.Found && response.UserId) {
+        return response.UserId
+      }
+
+      return null
+    } catch (error) {
+      console.error('[Auth Service] Error finding user by phone:', error)
+      return null
+    }
   },
 
   /**

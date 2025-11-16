@@ -2,7 +2,9 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { BalanceCard } from "@/components/balance-card"
 import { QuickActions } from "@/components/quick-actions"
 import { RecentTransactions } from "@/components/recent-transactions"
+import { RecentTransfers } from "@/components/recent-transfers"
 import { ProtectedRoute } from "@/components/protected-route"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function DashboardPage() {
   return (
@@ -12,7 +14,18 @@ export default function DashboardPage() {
         <main className="container max-w-6xl mx-auto px-4 py-6 space-y-6">
           <BalanceCard />
           <QuickActions />
-          <RecentTransactions />
+          <Tabs defaultValue="transactions" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="transactions">Recent Transactions</TabsTrigger>
+              <TabsTrigger value="transfers">Recent Transfers</TabsTrigger>
+            </TabsList>
+            <TabsContent value="transactions" className="mt-4">
+              <RecentTransactions />
+            </TabsContent>
+            <TabsContent value="transfers" className="mt-4">
+              <RecentTransfers />
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
     </ProtectedRoute>
