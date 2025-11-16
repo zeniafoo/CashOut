@@ -221,7 +221,12 @@ export function TransferForm() {
           }
 
           // Check and complete referral if this is user's first transaction
-          await checkAndCompleteReferral(user.UserId)
+          try {
+            await checkAndCompleteReferral(user.UserId)
+          } catch (referralError) {
+            // Referral completion failed, but payment succeeded - just log it
+            console.error("[Transfer] Referral completion error:", referralError)
+          }
 
           // Add notification
           addNotification(

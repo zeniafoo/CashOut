@@ -33,9 +33,9 @@ export function ProfilePage() {
         setIsLoading(true)
         const response = await authService.getUser(contextUser.UserId)
 
-        if (response.Found) {
+        if (response) {
           const updatedUser: UserType = {
-            UserId: contextUser.UserId,
+            UserId: response.UserId,
             Name: response.Name,
             Email: response.Email,
             PhoneNumber: response.PhoneNumber,

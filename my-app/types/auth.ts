@@ -43,6 +43,11 @@ export interface GetUserResponse {
   ReferralCode: string
 }
 
+export interface GetUserByPhoneResponse {
+  Found: boolean
+  UserId: string
+}
+
 export interface ApiError {
   Success: false
   Message: string

@@ -1,0 +1,16 @@
+.vercel
+
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# package files
+package.json
+package-lock.json
+yarn.lock
+
+# env files
+.env
+.env.local
+.env*.local
