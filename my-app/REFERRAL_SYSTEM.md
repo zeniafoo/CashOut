@@ -37,10 +37,13 @@ To earn additional $5 bonuses:
 
 ## Technical Implementation
 
-### Frontend Cache
-- Tracks which users have been checked in the current session
+### Frontend Cache (localStorage)
+- Tracks which users have been checked using localStorage
+- Persists across browser sessions, page refreshes, and logins
 - Prevents redundant API calls for users who already completed their referral
-- Cache is cleared when user logs out
+- **Survives logout/login** - prevents users from getting duplicate bonuses by re-logging in
+- Cache is stored in browser's localStorage under key `referral_checked_users`
+- Only cleared manually via `resetReferralCache()` (for testing purposes)
 
 ### Backend Validation
 The OutSystems Referral API handles:

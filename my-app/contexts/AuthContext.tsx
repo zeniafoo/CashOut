@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/api/auth'
 import { walletService } from '@/lib/api/wallet'
 import { referralService } from '@/lib/api/referral'
-import { resetReferralCache } from '@/lib/referral-helper'
 import type { User, LoginRequest, RegisterRequest } from '@/types/auth'
 import { ApiError } from '@/lib/api/client'
 
@@ -111,7 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     authService.logout()
     setUser(null)
-    resetReferralCache() // Clear referral cache on logout
+    // Note: We intentionally do NOT clear referral cache on logout
+    // The cache should persist across sessions to prevent duplicate bonuses
     router.push('/')
   }
 
