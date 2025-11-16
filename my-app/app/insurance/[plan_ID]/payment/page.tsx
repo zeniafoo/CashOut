@@ -4,10 +4,12 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Toaster } from "react-hot-toast";
 
 export default function InsurancePage() {
   return (
     <ProtectedRoute>
+      <Toaster position="top-right"/>
       <div className="min-h-screen bg-gradient-to-br from-secondary/20 via-background to-primary/5">
         <DashboardHeader />
         <main className="container mx-auto px-4 py-6">

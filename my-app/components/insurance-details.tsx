@@ -1,7 +1,7 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarDays, DollarSign, FileText, Layers, RefreshCcw } from "lucide-react";
+import { CalendarDays, DollarSign, GalleryVerticalEnd, Layers, RefreshCcw } from "lucide-react";
 
 export default function InsuranceDetailsPage() {
   const { plan_ID } = useParams();
@@ -91,27 +91,27 @@ export default function InsuranceDetailsPage() {
         <FeatureCard
           icon={<DollarSign className="w-8 h-8 text-blue-600" />}
           title="Payment Options"
-          description="Single premium via asset transfer, or cash in USD / SGD."
+          description="Single premium via cash transfer, or in monthly instalments."
         />
         <FeatureCard
-          icon={<FileText className="w-8 h-8 text-blue-600" />}
+          icon={<Layers className="w-8 h-8 text-blue-600" />}
+          title="Flexibility"
+          description="Control over portfolio coverage with flexible access to policy value."
+        />
+        <FeatureCard
+          icon={<GalleryVerticalEnd className="w-8 h-8 text-blue-600" />}
           title="Coverage"
           description={plan.coverage_Scope || "Whole life coverage on death and terminal illness."}
         />
         <FeatureCard
           icon={<CalendarDays className="w-8 h-8 text-blue-600" />}
           title="Charges"
-          description="Guaranteed cost of insurance charges with 0% premium load."
-        />
-        <FeatureCard
-          icon={<Layers className="w-8 h-8 text-blue-600" />}
-          title="Flexibility"
-          description="Control over investment strategy with flexible access to policy value."
+          description="Guaranteed cost of insurance payout with minimal delays and 24/7 customer service."
         />
         <FeatureCard
           icon={<RefreshCcw className="w-8 h-8 text-blue-600" />}
           title="Receive Payouts"
-          description="Beneficiaries can receive death benefits in cash or via asset transfer."
+          description="Beneficiaries can receive all benefits in cash or via asset transfer after claims."
         />
       </section>
 
@@ -122,7 +122,7 @@ export default function InsuranceDetailsPage() {
             Important Information
           </summary>
           <p className="mt-3 text-gray-600 text-sm">
-            This policy is subject to terms, exclusions, and conditions. Please review the policy brochure before purchase.
+            This policy is subject to terms, exclusions, and conditions. Please contact our agents before or after policy purchase for more details.
           </p>
         </details>
       </section>

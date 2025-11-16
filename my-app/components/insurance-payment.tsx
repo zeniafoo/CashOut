@@ -4,6 +4,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Currency } from "lucide-react";
 import { getExchangeRate } from "@/lib/api/exchange"
 import { authService } from '@/lib/api/auth'
+import toast from "react-hot-toast";
 
 // const BENEFICIARY_USER_ID = "USR_ad04a6ed-b521-4225-9dcc-ca6618bb0d92";
 export function getCurrentUserId(): string {
@@ -84,7 +85,7 @@ export default function InsurancePaymentPage() {
     try {
       payload = JSON.parse(atob(encoded));
     } catch (err) {
-      console.error("Invalid encoded data", err);
+      // console.error("Invalid encoded data", err);
       router.push("/insurance?error=invalid_data");
     }
   }
@@ -112,8 +113,6 @@ export default function InsurancePaymentPage() {
   const [currentRate, setCurrentRate] = useState<number>(0);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const [beneficiary, setBeneficiary] = useState({
     Found: false,
@@ -160,7 +159,7 @@ export default function InsurancePaymentPage() {
 
         setWallets(data?.Wallets ?? []);
       } catch (e) {
-        console.error("Error fetching wallets:", e);
+        // console.error("Error fetching wallets:", e);
         setWallets([]);
       }
     }
@@ -198,7 +197,7 @@ export default function InsurancePaymentPage() {
           ReferralCode: data.ReferralCode,
         });
       } catch (err) {
-        console.error("Beneficiary Error:", err);
+        // console.error("Beneficiary Error:", err);
         setBeneficiary({
           Found: false,
           Name: "",
@@ -264,7 +263,7 @@ export default function InsurancePaymentPage() {
       setCurrentRate(num);
       return num;
     } catch (err) {
-      console.error("FX error:", err);
+      // console.error("FX error:", err);
       return 1;
     }
   }
@@ -311,7 +310,6 @@ export default function InsurancePaymentPage() {
   /* ----------------------------------------
     PAYMENT HELPERS
   -----------------------------------------*/
-
   // Calculate full months between dates
   const calculateMonths = (start: string, end: string) => {
     const s = new Date(start);
@@ -398,7 +396,6 @@ export default function InsurancePaymentPage() {
 
     return JSON.parse(raw || "{}");
   };
-
 
   /* ----------------------------------------
     TRIGGER PAYMENTS
@@ -506,17 +503,16 @@ export default function InsurancePaymentPage() {
      Payment Submission
   -----------------------------------------*/
   const handleSubmit = async () => {
-    setError(null);
-    setSuccess(null);
-
     if (!selectedWallet) {
-      setError("Please select a wallet.");
+      // setError("Please select a wallet.");
+      toast.error("Please select a wallet.")
       return;
     }
 
     const required = paymentMode === "monthly" ? premium / 3 : premium;
     if (walletBalance < required) {
-      setError(`Insufficient balance. Required: $${required.toFixed(2)}`);
+      // setError(`Insufficient balance. Required: $${required.toFixed(2)}`);
+      toast.error(`Insufficient balance. Required: $${required.toFixed(2)}`)
       return;
     }
 
@@ -569,11 +565,11 @@ export default function InsurancePaymentPage() {
         walletId: selectedWallet,
       });
 
-      setSuccess("Payment successful! Redirecting...");
+      toast.success("Payment successful! Redirecting...");
       setTimeout(() => router.push(`/insurance/policies`), 1800);
     } catch (err) {
-      console.error("❌ ERROR:", err);
-      setError("Payment failed. Try again.");
+      // console.error("❌ ERROR:", err);
+      toast.error("Payment failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -665,6 +661,11 @@ export default function InsurancePaymentPage() {
               Monthly instalments require ≥ 90 days coverage.
             </p>
           )}
+          {(paymentMode == "monthly") && (
+            <p className="text-gray-500 text-sm mt-1">
+              Monthly instalments will be tied to one wallet.
+            </p>
+          )}
         </div>
 
         {/* Wallet Selector */}
@@ -679,7 +680,7 @@ export default function InsurancePaymentPage() {
 
             {wallets.map((w: Wallet) => (
               <option key={w.Id} value={w.Id.toString()}>
-                {w.CurrencyCode} — ${w.Balance.toFixed(2)}
+                {w.CurrencyCode} — {formatCurrency(w.Balance, w.CurrencyCode)}
               </option>
             ))}
           </select>
@@ -704,11 +705,12 @@ export default function InsurancePaymentPage() {
               return (
                 <>
                   <p className="text-2xl font-bold text-blue-700">
-                    {instalment.toFixed(2)}{selectedWalletCurrency} now
+                    {/* {insta  lment.toFixed(2)}{selectedWalletCurrency}  */}
+                    {formatCurrency(Number(instalment), selectedWalletCurrency)} now
                   </p>
                   <p className="text-sm text-gray-700">
-                    + {months - 1} instalments of {instalment.toFixed(2)}{selectedWalletCurrency}  
-                    ({remainingTotal.toFixed(2)} total)
+                    + {months - 1} instalments of {formatCurrency(Number(instalment), selectedWalletCurrency)}  
+                    ({formatCurrency(Number(remainingTotal), selectedWalletCurrency)} total)
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Spread across {months} months
@@ -734,9 +736,6 @@ export default function InsurancePaymentPage() {
       >
         {loading ? "Processing..." : "Confirm Payment"}
       </button>
-
-      {error && <p className="text-red-600 text-center">{error}</p>}
-      {success && <p className="text-green-600 text-center">{success}</p>}
     </div>
   );
 }
