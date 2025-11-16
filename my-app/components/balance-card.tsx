@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Eye, EyeOff, TrendingUp, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { CurrencySelector } from "@/components/currency-selector"
 import { useAuth } from "@/contexts/AuthContext"
 import { walletService } from "@/lib/api/wallet"
@@ -85,13 +85,6 @@ export function BalanceCard() {
             </div>
           </div>
           <CurrencySelector value={selectedCurrency} onChange={setSelectedCurrency} />
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <div className="flex items-center gap-1 bg-primary-foreground/10 px-3 py-1.5 rounded-full">
-            <TrendingUp className="h-4 w-4 text-green-300" />
-            <span className="font-semibold text-green-300">+2.5%</span>
-            <span className="text-primary-foreground/70">this month</span>
-          </div>
         </div>
       </CardContent>
     </Card>
