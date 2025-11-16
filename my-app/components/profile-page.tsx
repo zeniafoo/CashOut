@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/AuthContext"
 import { authService } from "@/lib/api/auth"
-import { User, Mail, Phone, Share2, LogOut, Copy, Check, ArrowLeft } from "lucide-react"
+import { User, Mail, Phone, Share2, LogOut, Copy, Check, ArrowLeft, QrCode, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { generateUserQRData, generateQRCodeDataURL } from "@/lib/qr-code"
 import type { User as UserType } from "@/types/auth"
 
 export function ProfilePage() {
@@ -19,6 +20,7 @@ export function ProfilePage() {
   const [user, setUser] = useState<UserType | null>(contextUser)
   const [isLoading, setIsLoading] = useState(true)
   const [copiedCode, setCopiedCode] = useState(false)
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -44,12 +46,20 @@ export function ProfilePage() {
           // Update localStorage with latest user data
           localStorage.setItem("user", JSON.stringify(updatedUser))
         } else {
-          // User not found in API, but we still have context data - just use that
+          // User not found in API, but we still have context data - use that
           console.warn("User not found in GetUser API, using context data")
+          // Make sure we're using the context user data
+          if (contextUser) {
+            setUser(contextUser)
+          }
         }
       } catch (error) {
-        // API error, but we still have context data - just log it
+        // API error, but we still have context data - use that
         console.error("Error fetching user data:", error)
+        // Make sure we're using the context user data
+        if (contextUser) {
+          setUser(contextUser)
+        }
       } finally {
         setIsLoading(false)
       }
@@ -57,6 +67,19 @@ export function ProfilePage() {
 
     fetchUserData()
   }, [contextUser, router, toast])
+
+  // Generate QR code when user data is available
+  useEffect(() => {
+    const generateQR = async () => {
+      if (user?.UserId && user?.Name) {
+        const qrData = generateUserQRData(user.UserId, user.Name)
+        const qrUrl = await generateQRCodeDataURL(qrData)
+        setQrCodeUrl(qrUrl)
+      }
+    }
+
+    generateQR()
+  }, [user])
 
   const handleCopyReferralCode = async () => {
     if (user?.ReferralCode) {
@@ -75,6 +98,23 @@ export function ProfilePage() {
           variant: "destructive",
         })
       }
+    }
+  }
+
+  const handleDownloadQR = () => {
+    if (qrCodeUrl && user?.Name) {
+      // Create a temporary link to download the QR code
+      const link = document.createElement('a')
+      link.href = qrCodeUrl
+      link.download = `${user.Name.replace(/\s+/g, '_')}_QRCode.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast({
+        title: "QR Code Downloaded",
+        description: "Your QR code has been saved",
+      })
     }
   }
 
@@ -141,6 +181,45 @@ export function ProfilePage() {
               Phone Number
             </Label>
             <Input id="phone" value={user?.PhoneNumber || ""} readOnly className="bg-muted" />
+          </div>
+
+          {/* QR Code for Receiving Payments */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-muted-foreground">
+              <QrCode className="h-4 w-4" />
+              Your Payment QR Code
+            </Label>
+            <div className="bg-muted/50 p-6 rounded-lg">
+              <div className="flex flex-col items-center gap-4">
+                {qrCodeUrl ? (
+                  <>
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                      <img
+                        src={qrCodeUrl}
+                        alt="Your Payment QR Code"
+                        className="w-48 h-48"
+                      />
+                    </div>
+                    <p className="text-sm text-center text-muted-foreground max-w-xs">
+                      Share this QR code with others to receive payments directly to your account
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleDownloadQR}
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download QR Code
+                    </Button>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-48 w-48">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Referral Code */}
