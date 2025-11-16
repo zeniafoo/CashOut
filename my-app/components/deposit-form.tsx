@@ -35,6 +35,12 @@ export function DepositForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
+  // Credit card fields
+  const [cardNumber, setCardNumber] = useState("")
+  const [cardName, setCardName] = useState("")
+  const [expiryDate, setExpiryDate] = useState("")
+  const [cvv, setCvv] = useState("")
+
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -54,6 +60,58 @@ export function DepositForm() {
         variant: "destructive",
       })
       return
+    }
+
+    // If credit card is selected, require all card fields with proper validation
+    if (method === "card") {
+      if (!cardNumber || !cardName || !expiryDate || !cvv) {
+        toast({
+          title: "Missing Card Details",
+          description: "Please fill in all credit card fields.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validate card number is exactly 16 digits
+      if (cardNumber.length !== 16) {
+        toast({
+          title: "Invalid Card Number",
+          description: "Card number must be exactly 16 digits.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validate cardholder name is at least 3 characters
+      if (cardName.length < 3) {
+        toast({
+          title: "Invalid Cardholder Name",
+          description: "Cardholder name must be at least 3 characters.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validate expiry date format MM/YY
+      if (expiryDate.length !== 5 || !expiryDate.includes("/")) {
+        toast({
+          title: "Invalid Expiry Date",
+          description: "Expiry date must be in MM/YY format.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validate CVV is exactly 3 digits
+      if (cvv.length !== 3) {
+        toast({
+          title: "Invalid CVV",
+          description: "CVV must be exactly 3 digits.",
+          variant: "destructive",
+        })
+        return
+      }
     }
 
     setIsLoading(true)
@@ -155,15 +213,105 @@ export function DepositForm() {
             <Label>Deposit Method</Label>
             <RadioGroup value={method} onValueChange={setMethod} className="space-y-3">
               {depositMethods.map((depositMethod) => (
-                <div key={depositMethod.id} className="flex items-center space-x-3">
-                  <RadioGroupItem value={depositMethod.id} id={depositMethod.id} />
-                  <Label
-                    htmlFor={depositMethod.id}
-                    className="flex items-center gap-3 cursor-pointer flex-1 p-4 rounded-lg border-2 hover:bg-muted/50 transition-colors"
-                  >
-                    <depositMethod.icon className="h-5 w-5 text-primary" />
-                    <span className="font-medium">{depositMethod.label}</span>
-                  </Label>
+                <div key={depositMethod.id} className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value={depositMethod.id} id={depositMethod.id} />
+                    <Label
+                      htmlFor={depositMethod.id}
+                      className="flex items-center gap-3 cursor-pointer flex-1 p-4 rounded-lg border-2 hover:bg-muted/50 transition-colors"
+                    >
+                      <depositMethod.icon className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{depositMethod.label}</span>
+                    </Label>
+                  </div>
+
+                  {/* Credit Card Details - Show below card option when selected */}
+                  {depositMethod.id === "card" && method === "card" && (
+                    <div className="ml-9 space-y-4 p-4 border-2 rounded-lg bg-muted/20">
+                      <h3 className="font-semibold text-sm">Card Details</h3>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="cardNumber">Card Number</Label>
+                        <Input
+                          id="cardNumber"
+                          type="text"
+                          placeholder="1234 5678 1234 5678"
+                          value={cardNumber.replace(/(.{4})/g, "$1 ").trim()}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "")
+                            if (value.length <= 16) {
+                              setCardNumber(value)
+                            }
+                          }}
+                          maxLength={19}
+                          required
+                        />
+                        
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="cardName">Cardholder Name</Label>
+                        <Input
+                          id="cardName"
+                          type="text"
+                          placeholder="JOHN DOE"
+                          value={cardName}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^A-Za-z\s]/g, "")
+                            setCardName(value.toUpperCase())
+                          }}
+                          minLength={3}
+                          required
+                        />
+                        
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="expiryDate">Expiry Date</Label>
+                          <Input
+                            id="expiryDate"
+                            type="text"
+                            placeholder="MM/YY"
+                            value={expiryDate}
+                            onChange={(e) => {
+                              let value = e.target.value.replace(/\D/g, "")
+                              if (value.length >= 2) {
+                                value = value.slice(0, 2) + "/" + value.slice(2, 4)
+                              }
+                              if (value.length <= 5) {
+                                setExpiryDate(value)
+                              }
+                            }}
+                            maxLength={5}
+                            minLength={5}
+                            required
+                          />
+                          
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="cvv">CVV</Label>
+                          <Input
+                            id="cvv"
+                            type="text"
+                            placeholder="123"
+                            value={cvv}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, "")
+                              if (value.length <= 3) {
+                                setCvv(value)
+                              }
+                            }}
+                            maxLength={3}
+                            minLength={3}
+                            required
+                          />
+                          
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </RadioGroup>
