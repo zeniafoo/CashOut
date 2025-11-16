@@ -144,7 +144,13 @@ export const transferService = {
 
       console.log('[Transfer Service] GetTransfers response:', response)
 
+      // Handle "No transfers found" as a normal case (not an error)
       if (!response.Success) {
+        const message = response.Message || ''
+        if (message.toLowerCase().includes('no transfers found')) {
+          console.log('[Transfer Service] No transfers found for new user - returning empty array')
+          return []
+        }
         throw new Error(response.Message || 'Failed to fetch transfers')
       }
 
