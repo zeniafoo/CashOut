@@ -39,6 +39,43 @@ export function parseUserQRData(qrString: string): { type: string; userId: strin
 }
 
 /**
+ * Generate QR code data for an external merchant (e.g., TBank)
+ */
+export function generateMerchantQRData(merchantId: string, merchantName: string): string {
+  const qrData = {
+    type: "external_payment",
+    merchantId: merchantId,
+    merchantName: merchantName,
+    timestamp: Date.now(),
+  }
+
+  return JSON.stringify(qrData)
+}
+
+/**
+ * Parse external merchant QR code data
+ */
+export function parseMerchantQRData(qrString: string): { type: string; merchantId: string; merchantName: string } | null {
+  try {
+    const data = JSON.parse(qrString)
+
+    // Validate it's an external payment QR code
+    if (data.type === "external_payment" && data.merchantId && data.merchantName) {
+      return {
+        type: data.type,
+        merchantId: data.merchantId,
+        merchantName: data.merchantName,
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error("Error parsing merchant QR code data:", error)
+    return null
+  }
+}
+
+/**
  * Generate a QR code as a data URL using a simple QR code library
  * For now, we'll use a placeholder approach - you can replace this with a proper QR library
  */
