@@ -174,10 +174,10 @@ export function RecentTransactions() {
       }
     }
 
-    // WITHDRAWAL
+    // WITHDRAWAL/PAYMENT
     if (type.includes('withdrawal') || type.includes('withdraw')) {
       return {
-        title: 'Withdrawal',
+        title: 'Payment',
         subtitle: transaction.Description || 'Withdrew funds from wallet'
       }
     }
