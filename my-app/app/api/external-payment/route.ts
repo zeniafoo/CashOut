@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
     const username = process.env.TBANK_USERNAME
     const password = process.env.TBANK_API_PASSWORD
     const targetAccountId = process.env.TBANK_TARGET_ACCOUNT_ID || "0000002578"
+    const tenantId = process.env.TBANK_TENANT_ID || "bfc89ad4-c17f-4fe9-82c2-918d29d59fe0"
 
     if (!username || !password) {
       console.error("Missing TBank API credentials")
@@ -162,8 +163,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create Basic Auth header
-    const credentials = Buffer.from(`${username}:${password}`).toString("base64")
+    // Create Basic Auth header with tenant_id
+    const credentials = Buffer.from(`${username}:${password}+${tenantId}`).toString("base64")
 
     // Prepare the request body for TBank API
     const tbankPayload = {
