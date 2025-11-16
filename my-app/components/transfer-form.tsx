@@ -291,28 +291,6 @@ export function TransferForm() {
           return
         }
       } else {
-        // Regular transfer logic (existing phone/email/username)
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-
-        // Check and complete referral if this is user's first transaction
-        if (user?.UserId) {
-          await checkAndCompleteReferral(user.UserId)
-        }
-
-        // Add notification
-        addNotification(
-          "transfer_sent",
-          "Transfer Sent",
-          `Money sent to ${recipient}`,
-          amount,
-          currency
-        )
-
-        setIsSuccess(true)
-        toast({
-          title: "Transfer Successful!",
-          description: `${currency} ${amount} sent to ${recipient}`,
-        })
         // Phone transfer - lookup UserId first
         if (!user?.UserId) {
           toast({
@@ -384,6 +362,18 @@ export function TransferForm() {
             setIsLoading(false)
             return
           }
+
+          // Check and complete referral if this is user's first transaction
+          await checkAndCompleteReferral(user.UserId)
+
+          // Add notification
+          addNotification(
+            "transfer_sent",
+            "Transfer Sent",
+            `Money sent to ${recipient}`,
+            amount,
+            currency
+          )
       
           setIsSuccess(true)
           toast({
