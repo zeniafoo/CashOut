@@ -198,28 +198,28 @@ export function ExchangeForm() {
   if (isSuccess && confirmedSummary) {
     return (
       <Card className="border-2">
-        <CardContent className="pt-12 pb-12 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="bg-green-100 p-4 rounded-full">
-              <CheckCircle2 className="h-16 w-16 text-green-600" />
+        <CardContent className="pt-8 pb-8 sm:pt-12 sm:pb-12 text-center">
+          <div className="flex justify-center mb-4 sm:mb-6">
+            <div className="bg-green-100 p-3 sm:p-4 rounded-full">
+              <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 text-green-600" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Exchange Successful!</h2>
-          <p className="text-muted-foreground mb-2">
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">Exchange Successful!</h2>
+          <p className="text-sm sm:text-base text-muted-foreground mb-2">
             You exchanged {confirmedSummary.from} {confirmedSummary.fromAmount}
           </p>
-          <p className="text-lg font-semibold text-primary mb-6">
+          <p className="text-base sm:text-lg font-semibold text-primary mb-4 sm:mb-6">
             Received {confirmedSummary.to} {confirmedSummary.convertedAmount}
           </p>
-          <p className="text-sm text-muted-foreground mb-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-1">
             <span className="font-semibold">Confirmed Rate:</span> 1 {confirmedSummary.from} = {confirmedSummary.usedRate.toFixed(4)} {confirmedSummary.to}
           </p>
           {transactionId && (
-            <p className="text-sm text-muted-foreground mb-2">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-2">
               Transaction ID: {transactionId}
             </p>
           )}
-          <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Redirecting to dashboard...</p>
         </CardContent>
       </Card>
     );
@@ -228,17 +228,17 @@ export function ExchangeForm() {
   return (
     <Card className="border-2">
       <CardHeader>
-        <CardTitle>Exchange Currency</CardTitle>
-        <CardDescription>Convert your money between different currencies</CardDescription>
+        <CardTitle className="text-lg sm:text-xl">Exchange Currency</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Convert your money between different currencies</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleExchange} className="space-y-6">
+        <form onSubmit={handleExchange} className="space-y-4 sm:space-y-6">
           {error && (
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-destructive">Error</p>
-                <p className="text-sm text-destructive/90">{error}</p>
+                <p className="text-xs sm:text-sm font-semibold text-destructive">Error</p>
+                <p className="text-xs sm:text-sm text-destructive/90">{error}</p>
               </div>
             </div>
           )}
@@ -290,32 +290,32 @@ export function ExchangeForm() {
           </div>
           {/* Show exchange rate info (backend if available, else live) */}
           {fromAmount && currentRate > 0 && (
-            <div className="bg-secondary/50 p-4 rounded-lg space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <TrendingUp className="h-4 w-4" />
+            <div className="bg-secondary/50 p-3 sm:p-4 rounded-lg space-y-2 sm:space-y-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Current Exchange Rate</span>
               </div>
-              <div className="text-lg font-semibold">
+              <div className="text-base sm:text-lg font-semibold">
                 1 {fromCurrency} = {currentRate.toFixed(4)} {toCurrency}
               </div>
             </div>
           )}
-          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-            <h3 className="font-semibold text-sm">Exchange Summary</h3>
-            <div className="flex justify-between text-sm">
+          <div className="bg-muted/50 p-3 sm:p-4 rounded-lg space-y-2">
+            <h3 className="font-semibold text-xs sm:text-sm">Exchange Summary</h3>
+            <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-muted-foreground">You send</span>
               <span className="font-semibold">
                 {fromCurrency} {fromAmount || "0.00"}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-muted-foreground">Exchange fee</span>
               <span className="font-semibold text-green-600">Free</span>
             </div>
             <div className="border-t pt-2 mt-2">
               <div className="flex justify-between">
-                <span className="font-semibold">You receive</span>
-                <span className="font-bold text-lg text-primary">
+                <span className="font-semibold text-sm sm:text-base">You receive</span>
+                <span className="font-bold text-base sm:text-lg text-primary">
                   {toCurrency} {toAmount || "0.00"}
                 </span>
               </div>

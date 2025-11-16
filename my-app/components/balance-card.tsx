@@ -63,28 +63,30 @@ export function BalanceCard() {
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary-foreground/5 rounded-full -translate-y-32 translate-x-32" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary-foreground/5 rounded-full translate-y-24 -translate-x-24" />
       <CardContent className="pt-6 pb-6 relative z-10">
-        <div className="flex items-start justify-between mb-6">
-          <div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4 mb-6">
+          <div className="flex-1 w-full sm:w-auto">
             <p className="text-primary-foreground/80 text-sm mb-1">Total Balance</p>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {showBalance ? (
-                <h2 className="text-4xl font-bold tracking-tight">
+                <h2 className="text-3xl sm:text-4xl font-bold tracking-tight break-all">
                   {formatCurrency(currentBalance, selectedCurrency)}
                 </h2>
               ) : (
-                <h2 className="text-4xl font-bold tracking-tight">••••••</h2>
+                <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">••••••</h2>
               )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowBalance(!showBalance)}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
+                className="text-primary-foreground hover:bg-primary-foreground/10 shrink-0"
               >
                 {showBalance ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </Button>
             </div>
           </div>
-          <CurrencySelector value={selectedCurrency} onChange={setSelectedCurrency} />
+          <div className="w-full sm:w-auto">
+            <CurrencySelector value={selectedCurrency} onChange={setSelectedCurrency} />
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -150,10 +150,10 @@ export function RecentTransfers() {
     return (
       <Card className="border-2">
         <CardHeader>
-          <CardTitle className="text-xl">Recent Transfers</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Recent Transfers</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <CardContent className="flex items-center justify-center py-6 sm:py-8">
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     )
@@ -163,11 +163,11 @@ export function RecentTransfers() {
     return (
       <Card className="border-2">
         <CardHeader>
-          <CardTitle className="text-xl">Recent Transfers</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Recent Transfers</CardTitle>
         </CardHeader>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          <p>No transfers yet</p>
-          <p className="text-sm mt-2">Your recent transfers will appear here</p>
+        <CardContent className="py-6 sm:py-8 text-center text-muted-foreground">
+          <p className="text-sm sm:text-base">No transfers yet</p>
+          <p className="text-xs sm:text-sm mt-2">Your recent transfers will appear here</p>
         </CardContent>
       </Card>
     )
@@ -176,9 +176,9 @@ export function RecentTransfers() {
   return (
     <Card className="border-2">
       <CardHeader>
-        <CardTitle className="text-xl">Recent Transfers</CardTitle>
+        <CardTitle className="text-lg sm:text-xl">Recent Transfers</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4">
         {transfers.map((transfer) => {
           const isOutgoing = transfer.FromUserId === user?.UserId
           const otherUserId = isOutgoing ? transfer.ToUserId : transfer.FromUserId
@@ -187,27 +187,27 @@ export function RecentTransfers() {
           return (
             <div
               key={transfer.Id}
-              className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg hover:bg-muted/50 transition-colors"
             >
-              <div className="bg-secondary p-3 rounded-xl">
+              <div className="bg-secondary p-2 sm:p-3 rounded-xl">
                 {isOutgoing ? (
-                  <ArrowRight className="h-5 w-5 text-primary" />
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 ) : (
-                  <Send className="h-5 w-5 text-green-600" />
+                  <Send className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">
+                <p className="font-semibold text-xs sm:text-sm truncate">
                   {isOutgoing ? `To: ${displayName}` : `From: ${displayName}`}
                 </p>
-                <p className="text-xs text-muted-foreground">{formatDate(transfer.TransactionDate)}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{formatDate(transfer.TransactionDate)}</p>
               </div>
               <div className="text-right">
-                <p className={`font-bold ${isOutgoing ? "text-foreground" : "text-green-600"}`}>
+                <p className={`font-bold text-xs sm:text-sm ${isOutgoing ? "text-foreground" : "text-green-600"}`}>
                   {isOutgoing ? "-" : "+"}
                   {formatCurrency(transfer.Amount, transfer.CurrencyCode)}
                 </p>
-                <p className="text-xs text-muted-foreground">{transfer.Status}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{transfer.Status}</p>
               </div>
             </div>
           )

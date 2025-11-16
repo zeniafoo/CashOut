@@ -112,11 +112,11 @@ export function RegisterForm() {
   return (
     <Card className="w-full border-primary/20 shadow-lg">
       <CardHeader>
-        <CardTitle className="text-2xl">Create Account</CardTitle>
-        <CardDescription>Sign up to start managing your finances</CardDescription>
+        <CardTitle className="text-xl sm:text-2xl">Create Account</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Sign up to start managing your finances</CardDescription>
       </CardHeader>
       <form onSubmit={handleRegister}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <Input
@@ -198,8 +198,8 @@ export function RegisterForm() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="referralCode">
-              Referral Code <span className="text-muted-foreground text-xs">(Optional)</span>
+            <Label htmlFor="referralCode" className="text-sm">
+              Referral Code <span className="text-muted-foreground text-[10px] sm:text-xs">(Optional)</span>
             </Label>
             <Input
               id="referralCode"
@@ -210,16 +210,16 @@ export function RegisterForm() {
               disabled={isLoading}
               className="uppercase"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               Have a referral code? Both you and your friend get $5 after your first transaction!
             </p>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={isLoading}>
+        <CardFooter className="flex flex-col space-y-3 sm:space-y-4">
+          <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                 Creating account...
               </>
             ) : (
@@ -227,8 +227,8 @@ export function RegisterForm() {
             )}
           </Button>
           <Link href="/" className="w-full">
-            <Button variant="ghost" className="w-full" disabled={isLoading}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
+            <Button variant="ghost" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={isLoading}>
+              <ArrowLeft className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               Back to Login
             </Button>
           </Link>

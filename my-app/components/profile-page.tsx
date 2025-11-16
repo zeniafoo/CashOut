@@ -142,20 +142,21 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={handleBackToDashboard} className="gap-2">
+    <div className="container max-w-2xl mx-auto py-4 sm:py-8 px-3 sm:px-4 pb-20 sm:pb-8">
+      <div className="mb-4 sm:mb-6">
+        <Button variant="ghost" onClick={handleBackToDashboard} className="gap-2 text-sm">
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
+          <span className="hidden sm:inline">Back to Dashboard</span>
+          <span className="sm:hidden">Back</span>
         </Button>
       </div>
 
       <Card className="border-2">
         <CardHeader>
-          <CardTitle className="text-2xl">Profile Information</CardTitle>
-          <CardDescription>View your personal details and account information</CardDescription>
+          <CardTitle className="text-xl sm:text-2xl">Profile Information</CardTitle>
+          <CardDescription className="text-sm">View your personal details and account information</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name" className="flex items-center gap-2 text-muted-foreground">

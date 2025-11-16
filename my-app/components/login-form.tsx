@@ -58,11 +58,11 @@ export function LoginForm() {
   return (
     <Card className="border-2 shadow-xl">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-        <CardDescription>Enter your credentials to access your account</CardDescription>
+        <CardTitle className="text-xl sm:text-2xl font-bold">Welcome back</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Enter your credentials to access your account</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -96,10 +96,10 @@ export function LoginForm() {
               </button>
             </div>
           </div>
-          <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isLoading}>
+          <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base font-semibold" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                 Signing in...
               </>
             ) : (
@@ -107,10 +107,10 @@ export function LoginForm() {
             )}
           </Button>
         </form>
-        <div className="mt-4 text-center">
-          <button className="text-sm text-primary hover:underline">Forgot password?</button>
+        <div className="mt-3 sm:mt-4 text-center">
+          <button className="text-xs sm:text-sm text-primary hover:underline">Forgot password?</button>
         </div>
-        <div className="mt-6 text-center text-sm text-muted-foreground">
+        <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-muted-foreground">
           Don't have an account?{" "}
           <Link href="/register" className="text-primary font-semibold hover:underline">
             Sign up

@@ -165,17 +165,17 @@ export function DepositForm() {
   if (isSuccess) {
     return (
       <Card className="border-2">
-        <CardContent className="pt-12 pb-12 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="bg-green-100 p-4 rounded-full">
-              <CheckCircle2 className="h-16 w-16 text-green-600" />
+        <CardContent className="pt-8 pb-8 sm:pt-12 sm:pb-12 text-center">
+          <div className="flex justify-center mb-4 sm:mb-6">
+            <div className="bg-green-100 p-3 sm:p-4 rounded-full">
+              <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 text-green-600" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Deposit Successful!</h2>
-          <p className="text-muted-foreground mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">Deposit Successful!</h2>
+          <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
             {currency} {amount} has been added to your account
           </p>
-          <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Redirecting to dashboard...</p>
         </CardContent>
       </Card>
     )
@@ -184,11 +184,11 @@ export function DepositForm() {
   return (
     <Card className="border-2">
       <CardHeader>
-        <CardTitle>Deposit Details</CardTitle>
-        <CardDescription>Enter the amount and select your preferred deposit method</CardDescription>
+        <CardTitle className="text-lg sm:text-xl">Deposit Details</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Enter the amount and select your preferred deposit method</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleDeposit} className="space-y-6">
+        <form onSubmit={handleDeposit} className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
             <Label htmlFor="amount">Amount</Label>
             <div className="flex gap-2">
@@ -214,21 +214,21 @@ export function DepositForm() {
             <RadioGroup value={method} onValueChange={setMethod} className="space-y-3">
               {depositMethods.map((depositMethod) => (
                 <div key={depositMethod.id} className="space-y-3">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
                     <RadioGroupItem value={depositMethod.id} id={depositMethod.id} />
                     <Label
                       htmlFor={depositMethod.id}
-                      className="flex items-center gap-3 cursor-pointer flex-1 p-4 rounded-lg border-2 hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-2 sm:gap-3 cursor-pointer flex-1 p-3 sm:p-4 rounded-lg border-2 hover:bg-muted/50 transition-colors"
                     >
-                      <depositMethod.icon className="h-5 w-5 text-primary" />
-                      <span className="font-medium">{depositMethod.label}</span>
+                      <depositMethod.icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <span className="font-medium text-sm sm:text-base">{depositMethod.label}</span>
                     </Label>
                   </div>
 
                   {/* Credit Card Details - Show below card option when selected */}
                   {depositMethod.id === "card" && method === "card" && (
-                    <div className="ml-9 space-y-4 p-4 border-2 rounded-lg bg-muted/20">
-                      <h3 className="font-semibold text-sm">Card Details</h3>
+                    <div className="ml-7 sm:ml-9 space-y-3 sm:space-y-4 p-3 sm:p-4 border-2 rounded-lg bg-muted/20">
+                      <h3 className="font-semibold text-xs sm:text-sm">Card Details</h3>
 
                       <div className="space-y-2">
                         <Label htmlFor="cardNumber">Card Number</Label>

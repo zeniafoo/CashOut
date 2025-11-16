@@ -292,10 +292,10 @@ export function RecentTransactions() {
     return (
       <Card className="border-2">
         <CardHeader>
-          <CardTitle className="text-xl">Recent Transactions</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Recent Transactions</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <CardContent className="flex items-center justify-center py-6 sm:py-8">
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     )
@@ -305,11 +305,11 @@ export function RecentTransactions() {
     return (
       <Card className="border-2">
         <CardHeader>
-          <CardTitle className="text-xl">Recent Transactions</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Recent Transactions</CardTitle>
         </CardHeader>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          <p>No transactions yet</p>
-          <p className="text-sm mt-2">Your recent transactions will appear here</p>
+        <CardContent className="py-6 sm:py-8 text-center text-muted-foreground">
+          <p className="text-sm sm:text-base">No transactions yet</p>
+          <p className="text-xs sm:text-sm mt-2">Your recent transactions will appear here</p>
         </CardContent>
       </Card>
     )
@@ -318,9 +318,9 @@ export function RecentTransactions() {
   return (
     <Card className="border-2">
       <CardHeader>
-        <CardTitle className="text-xl">Recent Transactions</CardTitle>
+        <CardTitle className="text-lg sm:text-xl">Recent Transactions</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4">
         {groupedTransactions.map((grouped) => {
           if (grouped.type === 'exchange' && grouped.exchangePair) {
             // Render exchange transaction as a single entry
@@ -332,25 +332,25 @@ export function RecentTransactions() {
             return (
               <div
                 key={grouped.id}
-                className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-center gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="bg-secondary p-3 rounded-xl">
-                  <ArrowRightLeft className="h-5 w-5 text-primary" />
+                <div className="bg-secondary p-2 sm:p-3 rounded-xl">
+                  <ArrowRightLeft className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">Currency Exchange</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="font-semibold text-xs sm:text-sm">Currency Exchange</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                     {formatCurrency(fromAmount, fromTransaction.CurrencyCode)} → {formatCurrency(toAmount, toTransaction.CurrencyCode)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
                     {formatDate(fromTransaction.TransactionDate)}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-primary">
+                  <p className="font-bold text-xs sm:text-sm text-primary">
                     {formatCurrency(toAmount, toTransaction.CurrencyCode)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     -{formatCurrency(fromAmount, fromTransaction.CurrencyCode)}
                   </p>
                 </div>
@@ -366,20 +366,20 @@ export function RecentTransactions() {
             return (
               <div
                 key={grouped.id}
-                className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-center gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="bg-secondary p-3 rounded-xl">
-                  <TransactionIcon className="h-5 w-5 text-primary" />
+                <div className="bg-secondary p-2 sm:p-3 rounded-xl">
+                  <TransactionIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">
+                  <p className="font-semibold text-xs sm:text-sm truncate">
                     {title}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{formatDate(transaction.TransactionDate)}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{subtitle}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{formatDate(transaction.TransactionDate)}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-bold ${isPositive ? "text-green-600" : "text-foreground"}`}>
+                  <p className={`font-bold text-xs sm:text-sm ${isPositive ? "text-green-600" : "text-foreground"}`}>
                     {isPositive ? "+" : "-"}
                     {formatCurrency(transaction.Amount, transaction.CurrencyCode)}
                   </p>

@@ -39,18 +39,18 @@ export function QuickActions() {
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {actions.map((action) => (
         <Card
           key={action.label}
           className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 border-2"
           onClick={action.onClick}
         >
-          <CardContent className="p-6 flex flex-col items-center gap-3">
-            <div className={`${action.bgColor} p-4 rounded-2xl`}>
-              <action.icon className={`h-6 w-6 ${action.color}`} />
+          <CardContent className="p-4 sm:p-6 flex flex-col items-center gap-2 sm:gap-3">
+            <div className={`${action.bgColor} p-3 sm:p-4 rounded-2xl`}>
+              <action.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${action.color}`} />
             </div>
-            <span className="font-semibold text-sm">{action.label}</span>
+            <span className="font-semibold text-xs sm:text-sm text-center">{action.label}</span>
           </CardContent>
         </Card>
       ))}

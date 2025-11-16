@@ -437,27 +437,27 @@ export function TransferForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Recent Contacts */}
       <Card className="border-2">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Users className="h-4 w-4 sm:h-5 sm:w-5" />
             Recent Contacts
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {recentContacts.map((contact) => (
               <button
                 key={contact.id}
                 onClick={() => handleSelectContact(contact)}
-                className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex flex-col items-center gap-2 p-2 sm:p-3 rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <Avatar className="h-12 w-12 border-2 border-primary/20">
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">{contact.avatar}</AvatarFallback>
+                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-primary/20">
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs sm:text-sm">{contact.avatar}</AvatarFallback>
                 </Avatar>
-                <span className="text-xs font-medium text-center line-clamp-1">{contact.name}</span>
+                <span className="text-[10px] sm:text-xs font-medium text-center line-clamp-1 w-full">{contact.name}</span>
               </button>
             ))}
           </div>
