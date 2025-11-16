@@ -20,7 +20,7 @@ export default function InsurancePage() {
             </Link>
           </div>
           <div className="mb-6">
-            {/* <h1 className="text-3xl font-bold text-balance">Purhcase Insurance</h1>
+            {/* <h1 className="text-3xl font-bold text-balance">Purchase Insurance</h1>
             <p className="text-muted-foreground mt-2">Apply for overseas coverage instantly with local providers.</p> */}
           </div>
           <InsuranceDraftPage />
