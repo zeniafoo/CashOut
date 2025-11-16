@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowDownToLine, ArrowRightLeft, ArrowUpFromLine, Send, Loader2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { walletService } from "@/lib/api/wallet"
+import { transferService } from "@/lib/api/transfer"
 import type { Transaction } from "@/types/wallet"
 
 type GroupedTransaction = {
@@ -30,8 +31,45 @@ export function RecentTransactions() {
       }
 
       try {
-        const fetchedTransactions = await walletService.getRecentTransactions(user.UserId, 10)
-        setTransactions(fetchedTransactions)
+        // Fetch both transactions and transfers
+        const [fetchedTransactions, transfers] = await Promise.all([
+          walletService.getRecentTransactions(user.UserId, 20), // Get more to account for filtering
+          transferService.getRecentTransfers(user.UserId, 20).catch(() => []) // Get transfers, ignore errors
+        ])
+        
+        // Create a set of transfer identifiers (amount + currency + date within 5 seconds)
+        const transferIdentifiers = new Set<string>()
+        transfers.forEach(transfer => {
+          const transferDate = new Date(transfer.TransactionDate).getTime()
+          // Create identifier for both sender and receiver transactions
+          const senderKey = `${transfer.Amount}-${transfer.CurrencyCode}-${Math.floor(transferDate / 5000)}`
+          const receiverKey = `${transfer.Amount}-${transfer.CurrencyCode}-${Math.floor(transferDate / 5000)}`
+          transferIdentifiers.add(senderKey)
+          transferIdentifiers.add(receiverKey)
+        })
+        
+        // Filter out transactions that match transfers
+        const filteredTransactions = fetchedTransactions.filter((tx) => {
+          const txDate = new Date(tx.TransactionDate).getTime()
+          const txKey = `${Math.abs(tx.Amount)}-${tx.CurrencyCode}-${Math.floor(txDate / 5000)}`
+          
+          // Check if this transaction matches a transfer
+          const isTransfer = transferIdentifiers.has(txKey)
+          
+          if (isTransfer) {
+            console.log('[Recent Transactions] Filtered out transfer transaction:', {
+              type: tx.TransactionType,
+              description: tx.Description,
+              amount: tx.Amount,
+              currency: tx.CurrencyCode
+            })
+          }
+          
+          return !isTransfer
+        }).slice(0, 10) // Limit to 10 after filtering
+        
+        console.log('[Recent Transactions] Filtered transactions:', filteredTransactions.length)
+        setTransactions(filteredTransactions)
       } catch (error) {
         console.error('Error fetching transactions:', error)
       } finally {

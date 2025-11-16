@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Send, Loader2, ArrowRight } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { transferService } from "@/lib/api/transfer"
+import { authService } from "@/lib/api/auth"
 import type { Transfer } from "@/types/transfer"
 
 export function RecentTransfers() {
   const { user } = useAuth()
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [userNames, setUserNames] = useState<Record<string, string>>({}) // Map UserId -> Name
 
   // Fetch transfers on mount
   useEffect(() => {
@@ -32,6 +34,54 @@ export function RecentTransfers() {
 
     fetchTransfers()
   }, [user?.UserId])
+
+  // Fetch user names for all unique UserIds in transfers
+  useEffect(() => {
+    const fetchUserNames = async () => {
+      if (transfers.length === 0) return
+
+      // Get all unique UserIds (FromUserId and ToUserId)
+      const uniqueUserIds = new Set<string>()
+      transfers.forEach(transfer => {
+        if (transfer.FromUserId) uniqueUserIds.add(transfer.FromUserId)
+        if (transfer.ToUserId) uniqueUserIds.add(transfer.ToUserId)
+      })
+
+      // Remove current user's ID since we already have their name
+      uniqueUserIds.delete(user?.UserId || '')
+
+      // Fetch user info for each unique UserId
+      const nameMap: Record<string, string> = {}
+      const fetchPromises = Array.from(uniqueUserIds).map(async (userId) => {
+        try {
+          const userInfo = await authService.getUser(userId)
+          if (userInfo && userInfo.Name) {
+            nameMap[userId] = userInfo.Name
+          } else {
+            // Fallback to truncated UserId if name not found
+            nameMap[userId] = userId.substring(0, 8) + '...'
+          }
+        } catch (error) {
+          console.error(`Error fetching user ${userId}:`, error)
+          // Fallback to truncated UserId on error
+          nameMap[userId] = userId.substring(0, 8) + '...'
+        }
+      })
+
+      await Promise.all(fetchPromises)
+      setUserNames(nameMap)
+    }
+
+    fetchUserNames()
+  }, [transfers, user?.UserId])
+
+  // Helper function to get display name for a UserId
+  const getDisplayName = (userId: string): string => {
+    if (userId === user?.UserId) {
+      return 'You'
+    }
+    return userNames[userId] || userId.substring(0, 8) + '...'
+  }
 
   // Helper function to format date
   const formatDate = (dateString: string | null | undefined) => {
@@ -132,6 +182,7 @@ export function RecentTransfers() {
         {transfers.map((transfer) => {
           const isOutgoing = transfer.FromUserId === user?.UserId
           const otherUserId = isOutgoing ? transfer.ToUserId : transfer.FromUserId
+          const displayName = getDisplayName(otherUserId)
 
           return (
             <div
@@ -147,7 +198,7 @@ export function RecentTransfers() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate">
-                  {isOutgoing ? `To: ${otherUserId.substring(0, 8)}...` : `From: ${otherUserId.substring(0, 8)}...`}
+                  {isOutgoing ? `To: ${displayName}` : `From: ${displayName}`}
                 </p>
                 <p className="text-xs text-muted-foreground">{formatDate(transfer.TransactionDate)}</p>
               </div>
