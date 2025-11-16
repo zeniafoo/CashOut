@@ -155,7 +155,7 @@ export function InsuranceProductsPage() {
                   Country: {plan.plan_Country || "N/A"}
                 </p>
                 <p className="text-sm text-gray-700 font-semibold">
-                  Premium: ${plan.plan_Premium.toFixed(2)}/month
+                  Premium: ${plan.plan_Premium.toFixed(2)*30}/month
                 </p>
                 <Button className="w-full mt-3" onClick={() =>router.push(`/insurance/${plan.plan_ID}`)}>
                   View Details
