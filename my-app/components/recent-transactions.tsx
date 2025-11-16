@@ -7,10 +7,19 @@ import { useAuth } from "@/contexts/AuthContext"
 import { walletService } from "@/lib/api/wallet"
 import type { Transaction } from "@/types/wallet"
 
+type GroupedTransaction = {
+  id: string
+  type: 'single' | 'exchange'
+  transaction: Transaction
+  exchangePair?: Transaction // For exchange transactions
+}
+
 export function RecentTransactions() {
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [groupedTransactions, setGroupedTransactions] = useState<GroupedTransaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [userNames, setUserNames] = useState<Record<string, string>>({})
 
   // Fetch transactions on mount
   useEffect(() => {
@@ -33,14 +42,162 @@ export function RecentTransactions() {
     fetchTransactions()
   }, [user?.UserId])
 
+  // Group exchange transactions together using heuristics
+  useEffect(() => {
+    if (transactions.length === 0) {
+      setGroupedTransactions([])
+      return
+    }
+
+    const grouped: GroupedTransaction[] = []
+    const processed = new Set<number>()
+
+    transactions.forEach((transaction, index) => {
+      if (processed.has(index)) return
+
+      // Heuristic: If negative amount (withdrawal), look for matching positive (deposit) with:
+      // 1. Different currency
+      // 2. Same timestamp (within 2 seconds)
+      // 3. Could be a currency exchange
+      if (transaction.Amount < 0) {
+        const matchingDeposit = transactions.find((t, i) => {
+          if (i === index || processed.has(i)) return false
+
+          const timeDiff = Math.abs(
+            new Date(t.TransactionDate).getTime() - new Date(transaction.TransactionDate).getTime()
+          )
+
+          return (
+            t.Amount > 0 && // Positive amount (deposit)
+            t.CurrencyCode !== transaction.CurrencyCode && // Different currency
+            timeDiff <= 2000 // Within 2 seconds
+          )
+        })
+
+        if (matchingDeposit) {
+          const matchIndex = transactions.indexOf(matchingDeposit)
+          processed.add(index)
+          processed.add(matchIndex)
+
+          // This looks like an exchange - group them together
+          grouped.push({
+            id: `exchange-${transaction.Id}-${matchingDeposit.Id}`,
+            type: 'exchange',
+            transaction: transaction,
+            exchangePair: matchingDeposit
+          })
+        } else {
+          // No matching pair found, treat as regular withdrawal
+          processed.add(index)
+          grouped.push({
+            id: `single-${transaction.Id}`,
+            type: 'single',
+            transaction: transaction
+          })
+        }
+      } else {
+        // Positive amount - only add if not already processed as part of an exchange
+        if (!processed.has(index)) {
+          processed.add(index)
+          grouped.push({
+            id: `single-${transaction.Id}`,
+            type: 'single',
+            transaction: transaction
+          })
+        }
+      }
+    })
+
+    setGroupedTransactions(grouped)
+  }, [transactions])
+
   // Helper function to get icon based on transaction type
   const getTransactionIcon = (type: string) => {
     const lowerType = type.toLowerCase()
     if (lowerType.includes('deposit')) return ArrowDownToLine
     if (lowerType.includes('withdrawal')) return ArrowUpFromLine
-    if (lowerType.includes('transfer')) return Send
-    if (lowerType.includes('exchange')) return ArrowRightLeft
+    if (lowerType.includes('transfer') || lowerType.includes('sent') || lowerType.includes('received')) return Send
+    if (lowerType.includes('exchange') || lowerType.includes('conversion')) return ArrowRightLeft
     return Send // Default
+  }
+
+  // Helper function to generate detailed transaction description
+  const getDetailedDescription = (transaction: Transaction): { title: string; subtitle: string } => {
+    const type = transaction.TransactionType.toLowerCase()
+    const amount = Math.abs(transaction.Amount)
+    const currency = transaction.CurrencyCode
+    const isPositive = transaction.Amount > 0
+
+    // DEPOSIT
+    if (type.includes('deposit')) {
+      return {
+        title: 'Deposit',
+        subtitle: transaction.Description || 'Added funds to wallet'
+      }
+    }
+
+    // WITHDRAWAL
+    if (type.includes('withdrawal') || type.includes('withdraw')) {
+      return {
+        title: 'Withdrawal',
+        subtitle: transaction.Description || 'Withdrew funds from wallet'
+      }
+    }
+
+    // TRANSFER (Sent or Received)
+    if (type.includes('transfer') || type.includes('sent') || type.includes('received')) {
+      // Extract name from description if it contains "from" or "to"
+      let displayDescription = transaction.Description || ''
+
+      // Check if description contains "Sent to [Name]" or "Received from [Name]"
+      const sentMatch = displayDescription.match(/Sent to (.+)/)
+      const receivedMatch = displayDescription.match(/Received from (.+)/)
+
+      if (isPositive) {
+        // Money received
+        const fromName = receivedMatch ? receivedMatch[1] : null
+        return {
+          title: 'Money Received',
+          subtitle: fromName ? `From ${fromName}` : (displayDescription || `Received ${formatCurrency(amount, currency)}`)
+        }
+      } else {
+        // Money sent
+        const toName = sentMatch ? sentMatch[1] : null
+        return {
+          title: 'Money Sent',
+          subtitle: toName ? `To ${toName}` : (displayDescription || `Sent ${formatCurrency(amount, currency)}`)
+        }
+      }
+    }
+
+    // EXCHANGE/CONVERSION
+    if (type.includes('exchange') || type.includes('conversion')) {
+      if (isPositive) {
+        return {
+          title: 'Currency Exchange',
+          subtitle: transaction.Description || `Received from exchange`
+        }
+      } else {
+        return {
+          title: 'Currency Exchange',
+          subtitle: transaction.Description || `Converted to another currency`
+        }
+      }
+    }
+
+    // REFERRAL BONUS
+    if (type.includes('referral') || type.includes('bonus')) {
+      return {
+        title: 'Referral Bonus',
+        subtitle: transaction.Description || 'Referral reward credited'
+      }
+    }
+
+    // DEFAULT
+    return {
+      title: transaction.TransactionType,
+      subtitle: transaction.Description || 'Transaction'
+    }
   }
 
   // Helper function to format date
@@ -106,7 +263,7 @@ export function RecentTransactions() {
     )
   }
 
-  if (transactions.length === 0) {
+  if (groupedTransactions.length === 0 && !isLoading) {
     return (
       <Card className="border-2">
         <CardHeader>
@@ -126,32 +283,72 @@ export function RecentTransactions() {
         <CardTitle className="text-xl">Recent Transactions</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {transactions.map((transaction) => {
-          const TransactionIcon = getTransactionIcon(transaction.TransactionType)
-          const isPositive = transaction.Amount > 0
+        {groupedTransactions.map((grouped) => {
+          if (grouped.type === 'exchange' && grouped.exchangePair) {
+            // Render exchange transaction as a single entry
+            const fromTransaction = grouped.transaction // withdrawal (negative)
+            const toTransaction = grouped.exchangePair // deposit (positive)
+            const fromAmount = Math.abs(fromTransaction.Amount)
+            const toAmount = Math.abs(toTransaction.Amount)
 
-          return (
-            <div
-              key={transaction.Id}
-              className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="bg-secondary p-3 rounded-xl">
-                <TransactionIcon className="h-5 w-5 text-primary" />
+            return (
+              <div
+                key={grouped.id}
+                className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="bg-secondary p-3 rounded-xl">
+                  <ArrowRightLeft className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm">Currency Exchange</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {formatCurrency(fromAmount, fromTransaction.CurrencyCode)} → {formatCurrency(toAmount, toTransaction.CurrencyCode)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatDate(fromTransaction.TransactionDate)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-primary">
+                    {formatCurrency(toAmount, toTransaction.CurrencyCode)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    -{formatCurrency(fromAmount, fromTransaction.CurrencyCode)}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">
-                  {transaction.Description || transaction.TransactionType}
-                </p>
-                <p className="text-xs text-muted-foreground">{formatDate(transaction.TransactionDate)}</p>
+            )
+          } else {
+            // Render regular single transaction
+            const transaction = grouped.transaction
+            const TransactionIcon = getTransactionIcon(transaction.TransactionType)
+            const isPositive = transaction.Amount > 0
+            const { title, subtitle } = getDetailedDescription(transaction)
+
+            return (
+              <div
+                key={grouped.id}
+                className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="bg-secondary p-3 rounded-xl">
+                  <TransactionIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">
+                    {title}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{formatDate(transaction.TransactionDate)}</p>
+                </div>
+                <div className="text-right">
+                  <p className={`font-bold ${isPositive ? "text-green-600" : "text-foreground"}`}>
+                    {isPositive ? "+" : "-"}
+                    {formatCurrency(transaction.Amount, transaction.CurrencyCode)}
+                  </p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className={`font-bold ${isPositive ? "text-green-600" : "text-foreground"}`}>
-                  {isPositive ? "+" : "-"}
-                  {formatCurrency(transaction.Amount, transaction.CurrencyCode)}
-                </p>
-              </div>
-            </div>
-          )
+            )
+          }
         })}
       </CardContent>
     </Card>

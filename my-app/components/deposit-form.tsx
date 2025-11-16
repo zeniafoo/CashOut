@@ -235,7 +235,6 @@ export function DepositForm() {
                         <Input
                           id="cardNumber"
                           type="text"
-                          placeholder="1234 5678 1234 5678"
                           value={cardNumber.replace(/(.{4})/g, "$1 ").trim()}
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/g, "")
@@ -246,7 +245,7 @@ export function DepositForm() {
                           maxLength={19}
                           required
                         />
-                        
+
                       </div>
 
                       <div className="space-y-2">
@@ -254,7 +253,6 @@ export function DepositForm() {
                         <Input
                           id="cardName"
                           type="text"
-                          placeholder="JOHN DOE"
                           value={cardName}
                           onChange={(e) => {
                             const value = e.target.value.replace(/[^A-Za-z\s]/g, "")
@@ -263,7 +261,7 @@ export function DepositForm() {
                           minLength={3}
                           required
                         />
-                        
+
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
