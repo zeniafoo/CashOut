@@ -1,7 +1,19 @@
 "use client";
 import { useSearchParams, useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CreditCard, FileText, ShieldCheck, Calendar } from "lucide-react";
+import { FileText, User, Mail, ShieldCheck, Landmark, Calendar, CircleDollarSign, GalleryVerticalEnd  } from "lucide-react";
+import { authService } from '@/lib/api/auth'
+
+// const BENEFICIARY_USER_ID = "USR_ad04a6ed-b521-4225-9dcc-ca6618bb0d92";
+export function getCurrentUserId(): string {
+  const user = authService.getCurrentUser()
+  if (!user || !user.UserId) {
+    throw new Error('User not authenticated')
+  }
+  return user.UserId
+}
+const BENEFICIARY_USER_ID = getCurrentUserId();
+
 
 interface InsurancePlan {
   plan_ID: number,
@@ -12,30 +24,103 @@ interface InsurancePlan {
   coverage_Amount: string;
   coverage_Scope: string;
 }
-
-interface ApiResponse {
-  InsurancePlanList: InsurancePlan[];
-  Result: {
-    Success: boolean;
-    ErrorMessage: string;
-  };
+interface Beneficiary {
+  Found: boolean;
+  Name: string;
+  Email: string;
+  PhoneNumber: string;
+  ReferralCode: string;
 }
 
 export default function QuoteDraftPage() {
   const { plan_ID } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-
+  
   const [plan, setPlan] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [premium, setPremium] = useState<number | null>(null);
+  const [premium, setPremium] = useState<number>(0);
   const [premiumLoading, setPremiumLoading] = useState(false);
   const [premiumError, setPremiumError] = useState<string | null>(null);
 
-  const startDate = searchParams.get("start") || "";
-  const endDate = searchParams.get("end") || "";
+  // Encoded params 
+  const encoded_in = searchParams.get("data");
+  let payload_in: any = null;
+  if (encoded_in) {
+    try {
+      payload_in = JSON.parse(atob(encoded_in));
+    } catch (err) {
+      console.error("Invalid encoded data", err);
+      router.push("/insurance?error=invalid_data");
+    }
+  }
 
+  const startDate = payload_in?.startDate ?? null;
+  const endDate = payload_in?.endDate ?? null;
+
+  const [beneficiary, setBeneficiary] = useState({
+    Found: false,
+    Name: "",
+    Email: "",
+    Phone: "",
+    ReferralCode: ""
+  });
+  const [beneficiaryLoading, setBeneficiaryLoading] = useState(true);
+
+  const payload_out = {
+    startDate,
+    endDate,
+  };
+  const encoded_out = encodeURIComponent(btoa(JSON.stringify(payload_out)));
+
+  /* ----------------------------------------
+    Fetch Beneficiary
+  -----------------------------------------*/
+  useEffect(() => {
+    const fetchBeneficiary = async () => {
+      try {
+        setBeneficiaryLoading(true);
+
+        const res = await fetch(
+          `https://personal-fxfq0mme.outsystemscloud.com/UserAuth_API/rest/UserAuthAPI/GetUser?UserId=${BENEFICIARY_USER_ID}`,
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            cache: "no-store",
+          }
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch beneficiary");
+
+        const data = await res.json();
+        // console.log("✅ Beneficiary Response:", data);
+
+        setBeneficiary({
+          Found: data.Found,
+          Name: data.Name,
+          Email: data.Email,
+          Phone: data.PhoneNumber,
+          ReferralCode: data.ReferralCode,
+        });
+      } catch (err) {
+        console.error("Beneficiary Error:", err);
+        setBeneficiary({
+          Found: false,
+          Name: "",
+          Email: "",
+          Phone: "",
+          ReferralCode: "",
+        });
+      } finally {
+        setBeneficiaryLoading(false);
+      }
+    };
+
+    fetchBeneficiary();
+  }, []);
+    
+  // fetch plan
   useEffect(() => {
     async function fetchPlan() {
       try {
@@ -69,7 +154,7 @@ export default function QuoteDraftPage() {
 
   useEffect(() => {
     if (plan) {
-      console.log("✅ Plan successfully set:", plan.plan_Country);
+      // console.log("✅ Plan successfully set:", plan.plan_Country);
     }
   }, [plan]);
 
@@ -129,12 +214,22 @@ export default function QuoteDraftPage() {
         {/* Policy Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <InfoBlock
+            icon={<User className="text-blue-600 w-6 h-6" />}
+            label="Beneficiary Name"
+            value={beneficiary.Name}
+          />
+          <InfoBlock
+            icon={<Mail className="text-blue-600 w-6 h-6" />}
+            label="Beneficiary Email"
+            value={beneficiary.Email}
+          />
+          <InfoBlock
             icon={<ShieldCheck className="text-blue-600 w-6 h-6" />}
             label="Plan Name"
             value={plan.plan_Name}
           />
           <InfoBlock
-            icon={<CreditCard className="text-blue-600 w-6 h-6" />}
+            icon={<Landmark className="text-blue-600 w-6 h-6" />}
             label="Provider"
             value={plan.plan_Provider}
           />
@@ -147,6 +242,18 @@ export default function QuoteDraftPage() {
             icon={<Calendar className="text-blue-600 w-6 h-6" />}
             label="End Date"
             value={endDate}
+          />
+        </div>
+        <div className="grid gap-6 mb-8">
+          <InfoBlock
+            icon={<CircleDollarSign className="text-blue-600 w-6 h-6" />}
+            label="Amount (SGD)"
+            value={plan.coverage_Amount}
+          />
+          <InfoBlock
+            icon={<GalleryVerticalEnd className="text-blue-600 w-6 h-6" />}
+            label="Coverage"
+            value={plan.coverage_Scope}
           />
         </div>
 
@@ -165,7 +272,7 @@ export default function QuoteDraftPage() {
           {!premiumLoading && premium !== null && (
             <>
               <p className="text-blue-700">
-                Total Calculated Premium:{" "}
+                Total Calculated Premium (SGD):{" "}
                 <strong>${premium.toFixed(2)}</strong>
               </p>
             </>
@@ -177,7 +284,7 @@ export default function QuoteDraftPage() {
             disabled={!premium}
             onClick={() =>
               router.push(
-                `/insurance/${plan_ID}/payment?premium=${premium}&start=${startDate}&end=${endDate}`
+                `/insurance/${plan_ID}/payment?data=${encoded_out}`
               )
             }
             className={`px-6 py-3 rounded-lg font-semibold text-white ${

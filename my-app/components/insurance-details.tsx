@@ -14,6 +14,7 @@ export default function InsuranceDetailsPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [validationMsg, setValidationMsg] = useState<string>("");
+  
 
   useEffect(() => {
     if (!plan_ID) return;
@@ -60,8 +61,12 @@ export default function InsuranceDetailsPage() {
       setValidationMsg("End date must be after start date.");
       return;
     }
-
-    router.push(`/insurance/${plan_ID}/quote-draft?start=${startDate}&end=${endDate}`);
+    const payload_out = {
+    startDate,
+    endDate,
+    };
+    const encoded_out = encodeURIComponent(btoa(JSON.stringify(payload_out)));
+    router.push(`/insurance/${plan_ID}/quote-draft?data=${encoded_out}`);
   };
 
   return (

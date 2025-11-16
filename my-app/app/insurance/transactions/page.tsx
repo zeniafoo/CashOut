@@ -1,5 +1,5 @@
 import { DashboardHeader } from "@/components/dashboard-header"
-import InsuranceDetailsPage from "@/components/insurance-details"
+import InsuranceTransactionsPage from "@/components/insurance-transactions"
 import { ProtectedRoute } from "@/components/protected-route"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -15,7 +15,7 @@ export default function InsurancePage() {
             <Link href="/insurance">
               <Button variant="ghost" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                All Plans
+                Back to Insurance
               </Button>
             </Link>
           </div>
@@ -23,7 +23,7 @@ export default function InsurancePage() {
             {/* <h1 className="text-3xl font-bold text-balance">Purhcase Insurance</h1>
             <p className="text-muted-foreground mt-2">Apply for overseas coverage instantly with local providers.</p> */}
           </div>
-          <InsuranceDetailsPage />
+          <InsuranceTransactionsPage />
         </main>
       </div>
     </ProtectedRoute>

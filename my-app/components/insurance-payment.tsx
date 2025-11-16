@@ -1,10 +1,21 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Currency } from "lucide-react";
+import { getExchangeRate } from "@/lib/api/exchange"
+import { authService } from '@/lib/api/auth'
 
-/* ----------------------------------------
-   Safe Date Formatting (unbreakable)
------------------------------------------*/
+// const BENEFICIARY_USER_ID = "USR_ad04a6ed-b521-4225-9dcc-ca6618bb0d92";
+export function getCurrentUserId(): string {
+  const user = authService.getCurrentUser()
+  if (!user || !user.UserId) {
+    throw new Error('User not authenticated')
+  }
+  return user.UserId
+}
+const BENEFICIARY_USER_ID = getCurrentUserId();
+
+// safe date formating
 function formatSafeDate(input: string | null): string {
   if (!input || typeof input !== "string") return "N/A";
 
@@ -23,6 +34,16 @@ function formatSafeDate(input: string | null): string {
   }
   return "N/A";
 }
+
+// currency formmating
+export function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: currency === 'JPY' || currency === 'KRW' ? 0 : 2
+  }).format(amount);
+}
+
 interface InsurancePlan {
   plan_ID: number,
   plan_Name: string;
@@ -55,14 +76,21 @@ export default function InsurancePaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { plan_ID } = useParams();
-  const BENEFICIARY_USER_ID = "USR_ad04a6ed-b521-4225-9dcc-ca6618bb0d92";
 
-  /* ----------------------------------------
-     Search Params (safe access)
-  -----------------------------------------*/
-  const premium = Number(searchParams.get("premium") ?? 0);
-  const startDate = searchParams.get("start");
-  const endDate = searchParams.get("end");
+  // Encoded Params
+  const encoded = searchParams.get("data");
+  let payload: any = null;
+  if (encoded) {
+    try {
+      payload = JSON.parse(atob(encoded));
+    } catch (err) {
+      console.error("Invalid encoded data", err);
+      router.push("/insurance?error=invalid_data");
+    }
+  }
+
+  const startDate = payload?.startDate ?? null;
+  const endDate = payload?.endDate ?? null;
 
   /* ----------------------------------------
      Component State
@@ -70,20 +98,29 @@ export default function InsurancePaymentPage() {
   const [plan, setPlan] = useState<any>(null);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedWallet, setSelectedWallet] = useState<string>("");
+  const selectedWalletObj = wallets.find(w => w.Id.toString() === selectedWallet);
+  const selectedWalletCurrency = selectedWalletObj?.CurrencyCode ?? "SGD";
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState("full");
   const [allowMonthly, setAllowMonthly] = useState(true);
+
+  const [premium, setPremium] = useState<number>(0);        // always in SGD
+  const [displayPremium, setDisplayPremium] = useState(0);  // converted to wallet currency
+
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumError, setPremiumError] = useState<string | null>(null);
+  const [currentRate, setCurrentRate] = useState<number>(0);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const [beneficiary, setBeneficiary] = useState({
-  Found: false,
-  Name: "",
-  Email: "",
-  Phone: "",
-  ReferralCode: ""
+    Found: false,
+    Name: "",
+    Email: "",
+    Phone: "",
+    ReferralCode: ""
   });
   const [beneficiaryLoading, setBeneficiaryLoading] = useState(true);
 
@@ -97,7 +134,7 @@ export default function InsurancePaymentPage() {
           `https://personal-g86bdbq5.outsystemscloud.com/Insurance_DBEA_/rest/plan_v1/specificPlan?planID=${plan_ID}`
         );
         const data = await res.json();
-        console.log("✅ Plan response:", data);
+        // console.log("✅ Plan response:", data);
         setPlan(data?.InsurancePlan ?? null);
       } catch (e) {
         setPlan(null);
@@ -113,13 +150,13 @@ export default function InsurancePaymentPage() {
     async function loadWallets() {
       try {
         const res = await fetch(
-          "https://personal-v44qxubl.outsystemscloud.com/Deposit/rest/WalletAPI/GetAllWalletByUserId?UserId=USR_ad04a6ed-b521-4225-9dcc-ca6618bb0d92"
+          `https://personal-v44qxubl.outsystemscloud.com/Deposit/rest/WalletAPI/GetAllWalletByUserId?UserId=${BENEFICIARY_USER_ID}`
         );
 
         if (!res.ok) throw new Error("Failed to fetch wallets");
 
         const data = await res.json();
-        console.log("✅ Wallet Response:", data);
+        // console.log("✅ Wallet Response:", data);
 
         setWallets(data?.Wallets ?? []);
       } catch (e) {
@@ -151,7 +188,7 @@ export default function InsurancePaymentPage() {
         if (!res.ok) throw new Error("Failed to fetch beneficiary");
 
         const data = await res.json();
-        console.log("✅ Beneficiary Response:", data);
+        // console.log("✅ Beneficiary Response:", data);
 
         setBeneficiary({
           Found: data.Found,
@@ -176,6 +213,77 @@ export default function InsurancePaymentPage() {
 
     fetchBeneficiary();
   }, []);
+
+  // Fetch calculated premium
+  useEffect(() => {
+    async function fetchPremium() {
+      if (!plan_ID || !startDate || !endDate || !plan) return; // 👈 block until plan is ready
+      setLoading(true);
+      setPremiumError(null);
+      try {
+        const res = await fetch(
+          `https://personal-g86bdbq5.outsystemscloud.com/Policy_DBEA_/rest/payments_v1/calculatePremium`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              plan_ID: Number(plan_ID),
+              policy_StartDate: startDate,
+              policy_EndDate: endDate,
+              policy_DestinationCountry: plan.plan_Country,
+            }),
+          }
+        );
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setPremium(Number(data));
+        setDisplayPremium(Number(data));
+        console.log("✅ Premium calc:", data);
+      } catch (err: any) {
+        // console.error("Premium calculation failed:", err);
+        setPremiumError("Failed to calculate premium. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPremium();
+  }, [plan_ID, startDate, endDate, plan]);
+
+  // Get exchange rate API
+  async function getCurrRate(from: string, to: string): Promise<number> {
+    if (!from || !to || from === to) return 1;
+
+    try {
+      const rate = await getExchangeRate(from, to);
+      const num = Number(rate);
+
+      if (!num || num <= 0) return 1;
+
+      setCurrentRate(num);
+      return num;
+    } catch (err) {
+      console.error("FX error:", err);
+      return 1;
+    }
+  }
+
+  // Converts calculated premium
+  useEffect(() => {
+    async function updatePremiumCurrency() {
+      setLoading(true);
+      if (!premium || !selectedWallet) return;
+
+      const wallet = wallets.find(w => w.Id.toString() === selectedWallet);
+      if (!wallet) return;
+
+      const rate = await getCurrRate("SGD", wallet.CurrencyCode);
+      setDisplayPremium(premium * rate);
+      setLoading(false);
+    }
+    updatePremiumCurrency();
+  }, [selectedWallet, premium]);
 
   /* ----------------------------------------
      Wallet Balance Update
@@ -233,16 +341,16 @@ export default function InsurancePaymentPage() {
     return dates;
   };
 
-  // Universal Payment API Caller
-  const callPaymentAPI = async (payload: any) => {
-    console.log("📡 Payment Payload:", payload);
+  // Payment API Caller
+  const callPaymentAPI = async (paypayload: any) => {
+    console.log("Payment Payload:", JSON.stringify(paypayload, null, 2));
 
     const res = await fetch(
       "https://personal-g86bdbq5.outsystemscloud.com/Policy_DBEA_/rest/payments_v1/addPayment",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(paypayload),
       }
     );
 
@@ -254,6 +362,44 @@ export default function InsurancePaymentPage() {
     return JSON.parse(raw);
   };
 
+  // Wallet Deduction API Caller
+  const callWalletDeduction = async ({
+    userId,
+    currency,
+    amount,
+  }: {
+    userId: string;
+    currency: string;
+    amount: number;
+  }) => {
+    console.log("📡 Wallet Deduction Payload:", {
+      UserId: userId,
+      CurrencyCode: currency,
+      Amount: amount,
+    });
+
+    const res = await fetch(
+      "https://personal-v44qxubl.outsystemscloud.com/Deposit/rest/WalletAPI/UpdateWallet",
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          UserId: userId,
+          CurrencyCode: currency,
+          Amount: -Math.abs(amount), // ALWAYS negative deduction
+        }),
+      }
+    );
+
+    const raw = await res.text();
+    console.log("💳 Wallet API Response:", raw);
+
+    if (!res.ok) throw new Error("Wallet API failed: " + raw);
+
+    return JSON.parse(raw || "{}");
+  };
+
+
   /* ----------------------------------------
     TRIGGER PAYMENTS
   -----------------------------------------*/
@@ -261,15 +407,11 @@ export default function InsurancePaymentPage() {
     policyId,
     paymentMode,
     premium,
-    startDate,
-    endDate,
     walletId,
   }: {
     policyId: string;
     paymentMode: string;
     premium: number;
-    startDate: string;
-    endDate: string;
     walletId: string;
   }) => {
     const userId = BENEFICIARY_USER_ID;
@@ -278,27 +420,44 @@ export default function InsurancePaymentPage() {
     const totalMonths = calculateMonths(startDate, endDate);
     console.log("📅 TOTAL MONTHS:", totalMonths);
 
-    /* ---------------- FULL PAYMENT ---------------- */
+    /* ---------------- Full Payment ---------------- */
     if (paymentMode === "full") {
-      const payload = {
+      const formattedPremium = displayPremium.toFixed(2)
+      
+      const paypayload = {
         user_ID: userId,
         policy_ID: policyId,
         wallet_ID: walletId,
         payment_date: today,
-        payment_amount: premium,
+        payment_amount: String(formattedPremium + selectedWalletCurrency),
         payment_desc: "Full payment received",
         payment_status: "Completed",
         payment_Type: "Full",
-        policy_StartDate: startDate,
-        policy_EndDate: endDate,
       };
+      const selectedWalletObj = wallets.find(
+        (w) => w.Id.toString() === selectedWallet
+      );
+      const walletCurrency =
+        selectedWalletObj?.CurrencyCode ?? "SGD";
+        
+      // 💳 Deduct full premium immediately
+      await callWalletDeduction({
+        userId,
+        currency: walletCurrency,
+        amount: Number(formattedPremium),
+      });
 
-      await callPaymentAPI(payload);
+      await callPaymentAPI(paypayload);
       return;
     }
 
-    /* ---------------- MONTHLY PAYMENTS ---------------- */
-    const instalment = premium / totalMonths;
+    /* ---------------- Monthly Payments ---------------- */
+    const instalment = totalMonths > 0
+    ? displayPremium / totalMonths
+    : displayPremium;
+
+    const formattedInstalment = instalment.toFixed(2)
+
     const futureDates = generateMonthlyDates(startDate, totalMonths);
 
     // First instalment now
@@ -307,32 +466,39 @@ export default function InsurancePaymentPage() {
       policy_ID: policyId,
       wallet_ID: walletId,
       payment_date: today,
-      payment_amount: instalment,
+      payment_amount: String(formattedInstalment + selectedWalletCurrency),
       payment_desc: `Initial instalment (1/${totalMonths})`,
       payment_status: "Completed",
       payment_Type: "Monthly",
-      policy_StartDate: startDate,
-      policy_EndDate: endDate,
     };
 
+    const selectedWalletObj = wallets.find(
+        (w) => w.Id.toString() === selectedWallet
+      );
+      const walletCurrency =
+        selectedWalletObj?.CurrencyCode ?? "SGD";
+
+    await callWalletDeduction({
+      userId,
+      currency: walletCurrency,
+      amount: Number(formattedInstalment),
+    });
     await callPaymentAPI(initialPayload);
 
-    // Remaining instalments
+    /* ---------------- Remaining Payments ---------------- */
     futureDates.forEach(async (date, idx) => {
-      const payload = {
+      const paypayload = {
         user_ID: userId,
         policy_ID: policyId,
         wallet_ID: walletId,
         payment_date: date,
-        payment_amount: instalment,
+        payment_amount: String(formattedInstalment + selectedWalletCurrency),
         payment_desc: `Scheduled instalment (${idx + 2}/${totalMonths})`,
         payment_status: "Not Due",
         payment_Type: "Monthly",
-        policy_StartDate: startDate,
-        policy_EndDate: endDate,
       };
 
-      await callPaymentAPI(payload);
+      await callPaymentAPI(paypayload);
     });
   };
 
@@ -358,18 +524,17 @@ export default function InsurancePaymentPage() {
     const today = new Date().toISOString().split("T")[0];
 
     try {
-      /* ----------------------------------------------------
-        STEP 1 — Create Policy
-      ----------------------------------------------------- */
+      /* ---------------- Create Policy ---------------- */
       const policyPayload = {
         user_ID: BENEFICIARY_USER_ID,
         plan_ID: plan?.plan_ID ?? "",
+        plan_Name: plan?.plan_Name ?? "",
         policy_StartDate: startDate,
         policy_EndDate: endDate,
         policy_IssuedDate: today,
-        policy_Premium: premium,
+        policy_Coverage: plan?.coverage_Amount ?? "",
         policy_DestinationCountry: plan?.plan_Country ?? "",
-        policy_Status: "Submitted",
+        policy_Status: "",
       };
 
       console.log("Policy Payload:", JSON.stringify(policyPayload, null, 2));
@@ -396,20 +561,16 @@ export default function InsurancePaymentPage() {
 
       console.log("🔥 NEW POLICY ID =", newPolicyID);
 
-      /* ----------------------------------------------------
-        STEP 2 — Trigger Payments (full or monthly)
-      ----------------------------------------------------- */
+      /* ---------------- Trigger Payments ---------------- */
       await triggerPayments({
         policyId: newPolicyID,
         paymentMode,
-        premium,
-        startDate: startDate!,
-        endDate: endDate!,
+        premium: displayPremium,
         walletId: selectedWallet,
       });
 
       setSuccess("Payment successful! Redirecting...");
-      // setTimeout(() => router.push("/insurance"), 1800);
+      setTimeout(() => router.push(`/insurance/policies`), 1800);
     } catch (err) {
       console.error("❌ ERROR:", err);
       setError("Payment failed. Try again.");
@@ -418,10 +579,11 @@ export default function InsurancePaymentPage() {
     }
   };
 
-  /* ----------------------------------------
-     Price Breakdown
-  -----------------------------------------*/
-  const instalment = premium / 3;
+  /* ---------------- Price Breakdown ---------------- */
+  const totalMonths = calculateMonths(startDate, endDate);
+  const instalment = totalMonths > 0
+    ? displayPremium / totalMonths
+    : displayPremium;
 
   /* ----------------------------------------
      UI Rendering
@@ -484,7 +646,6 @@ export default function InsurancePaymentPage() {
           Payment Details
         </h2>
 
-        {/* Payment Mode */}
         <div className="mb-4">
           <label className="text-gray-700 font-medium">Payment Type</label>
           <select
@@ -537,16 +698,16 @@ export default function InsurancePaymentPage() {
           {paymentMode === "monthly" ? (
             (() => {
               const months = calculateMonths(startDate!, endDate!);
-              const instalment = premium / months;
-              const remainingTotal = premium - instalment;
+              const instalment = displayPremium / months;
+              const remainingTotal = displayPremium - instalment;
 
               return (
                 <>
                   <p className="text-2xl font-bold text-blue-700">
-                    ${instalment.toFixed(2)} now
+                    {instalment.toFixed(2)}{selectedWalletCurrency} now
                   </p>
                   <p className="text-sm text-gray-700">
-                    + {months - 1} instalments of ${instalment.toFixed(2)}  
+                    + {months - 1} instalments of {instalment.toFixed(2)}{selectedWalletCurrency}  
                     ({remainingTotal.toFixed(2)} total)
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
@@ -557,7 +718,7 @@ export default function InsurancePaymentPage() {
             })()
           ) : (
             <p className="text-2xl font-bold text-blue-700">
-              ${premium.toFixed(2)}
+              {formatCurrency(Number(displayPremium), selectedWalletCurrency)}
             </p>
           )}
         </div>
