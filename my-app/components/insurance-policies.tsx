@@ -21,7 +21,7 @@ interface Policy {
   policy_StartDate: Date;
   policy_EndDate: Date;
   policy_IssuedDate: string;
-  policy_Coverage: number;
+  policy_Coverage: string;
   policy_DestinationCountry: string;
   policy_Status: string;
 }
@@ -152,7 +152,7 @@ export default function PoliciesPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                 <InfoBlock label="Policy Number" value={p.policy_ID?.toString() ?? "-"} />
-                <InfoBlock label="Coverage Amount (SGD)" value={`$${(Number(p.policy_Coverage)||0).toFixed(2)}`} />
+                <InfoBlock label="Coverage Amount" value={p.policy_Coverage} />
                 <InfoBlock label="Start" value={formatDate(p.policy_StartDate)} />
                 <InfoBlock label="End" value={formatDate(p.policy_EndDate)} />
                 <InfoBlock label="Destination" value={p.policy_DestinationCountry || "-"} />
